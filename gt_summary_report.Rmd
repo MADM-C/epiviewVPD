@@ -1,0 +1,383 @@
+---
+title: "<span style='font-size: 25px;'>MMR Vaccination and Measles Case Summary Figures</span>"
+output: html_document
+params:
+  school_table_district: NULL
+  school_table_county: NULL
+  boundary_type: NULL
+  daycare_table: NULL
+  case_table: NULL
+  measles_cases: NULL
+  table_type: NULL
+  county: NULL
+  district: NULL
+  gt_sort_by: NULL
+---
+
+```{css, echo=FALSE}
+h1 {
+  text-align: center;
+}
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = FALSE,
+  fig.align = "center",
+  message = FALSE,
+  warning = FALSE
+)
+```
+
+```{r}
+if (params$table_type == "School Vaccine Coverage" && params$boundary_type == "district") {
+  table_to_use <- params$school_table_district
+} else {
+  table_to_use <- switch(params$table_type,
+    "School Vaccine Coverage" = params$school_table_county,
+    "Child Care Vaccine Coverage" = params$daycare_table,
+    "Historical Measles Cases" = params$case_table
+  )
+}
+
+filtered_data <- if (params$table_type == "Historical Measles Cases" && params$county == "Statewide") {
+  table_to_use %>%
+    dplyr::group_by(year, age_group) %>%
+    dplyr::summarise(n_cases = sum(n_cases, na.rm = TRUE), .groups = "drop") %>%
+    dplyr::mutate(county = "Statewide")
+} else if (params$table_type == "School Vaccine Coverage" && params$boundary_type == "district") {
+  table_to_use %>%
+    dplyr::filter(district == params$district)
+} else {
+  table_to_use %>%
+    dplyr::filter(county == params$county)
+}
+```
+
+```{r, fig.height = 350 / 96, fig.width= 850 / 96}
+# --- Recreate Epi Curve Plot ---
+
+if (params$table_type == "Historical Measles Cases") {
+  all_years <- sort(unique(params$measles_cases$year))
+  min_year <- min(all_years, na.rm = TRUE)
+  max_year <- max(all_years, na.rm = TRUE)
+
+  county_years <- data.frame(year = seq(min_year, max_year, by = 1))
+  base_df <- params$measles_cases %>%
+    dplyr::mutate(county = stringr::str_to_title(county))
+
+  county_cases <- if (params$county == "Statewide") {
+    base_df %>%
+      dplyr::group_by(year) %>%
+      dplyr::summarise(cases = sum(n_cases, na.rm = TRUE), .groups = "drop") %>%
+      dplyr::right_join(county_years, by = "year") %>%
+      dplyr::mutate(cases = tidyr::replace_na(cases, 0L))
+  } else {
+    base_df %>%
+      dplyr::filter(county == params$county) %>%
+      dplyr::group_by(year) %>%
+      dplyr::summarise(cases = sum(n_cases, na.rm = TRUE), .groups = "drop") %>%
+      dplyr::right_join(county_years, by = "year") %>%
+      dplyr::mutate(cases = tidyr::replace_na(cases, 0L))
+  }
+  ggplot2::ggplot(county_cases, ggplot2::aes(x = year, y = cases)) +
+    # --- Navy bars with soft edges ---
+    ggplot2::geom_col(width = 0.75, fill = "#1E3A66") +
+    # --- Yellow labels for readability ---
+    ggplot2::geom_text(
+      ggplot2::aes(label = ifelse(cases > 0, cases, "")),
+      vjust = -0.5, size = 4.5, color = "black", fontface = "bold"
+    ) +
+    ggplot2::labs(
+      x = "Year",
+      y = "Number of Cases",
+      title = paste0(
+        "Measles Cases by Year: ",
+        ifelse(params$county == "Statewide", "", "County of "),
+        params$county
+      )
+    ) +
+    ggplot2::scale_x_continuous(
+      breaks = seq(min_year, max_year, 1),
+      expand = ggplot2::expansion(add = 0.3)
+    ) +
+    ggplot2::scale_y_continuous(
+      breaks = scales::pretty_breaks(n = 8),
+      labels = scales::label_number(accuracy = 1),
+      expand = ggplot2::expansion(mult = c(0, 0.15))
+    ) +
+    ggplot2::theme_minimal(base_size = 14) +
+    ggplot2::theme(
+      plot.background = ggplot2::element_rect(fill = "white", color = NA),
+      panel.background = ggplot2::element_rect(fill = "white", color = NA),
+      plot.title = ggplot2::element_text(hjust = 0.5, face = "bold", color = "#1E3A66"),
+      axis.title.x = ggplot2::element_text(face = "bold", color = "#1E3A66"),
+      axis.title.y = ggplot2::element_text(face = "bold", color = "#1E3A66"),
+      axis.text = ggplot2::element_text(color = "#1E3A66"),
+      panel.grid.minor = ggplot2::element_blank(),
+      panel.grid.major.x = ggplot2::element_blank()
+    )
+}
+```
+
+
+```{r}
+# --- Recreate GT Table for Historical ---
+
+if (params$table_type == "Historical Measles Cases") {
+  if (nrow(filtered_data) == 0) {
+    return(gt::gt(data.frame(Message = "No historical cases for selected county")))
+  }
+} else {
+  if (nrow(filtered_data) == 0) {
+    return(gt::gt(data.frame(Message = "No data for selected location")))
+  }
+}
+
+if (params$table_type == "Historical Measles Cases") {
+  # Define all age groups that should always appear
+  all_age_groups <- c("0–4", "5–11", "12–19", "20–49", "50+", "Unknown")
+
+  wide_cases <- filtered_data %>%
+    mutate(
+      county = as.character(county), # <- ensures statewide survives
+      age_group = gsub("-", "–", age_group),
+      age_group = factor(age_group, levels = all_age_groups, ordered = TRUE)
+    ) %>%
+    # ---- EXPAND to include all age groups for every county-year ----
+    tidyr::complete(
+      county,
+      year,
+      age_group = all_age_groups,
+      fill = list(n_cases = 0)
+    ) %>%
+    group_by(county, year, age_group) %>%
+    summarise(total_cases = sum(n_cases, na.rm = TRUE), .groups = "drop") %>%
+    # Pivot wider to table format
+    tidyr::pivot_wider(
+      names_from  = age_group,
+      values_from = total_cases,
+      values_fill = 0
+    ) %>%
+    arrange(year) %>%
+    # Reorder columns so they always appear in same order
+    select(
+      county,
+      year,
+      all_of(all_age_groups[all_age_groups %in% names(.)])
+    )
+
+  return(
+    wide_cases %>%
+      gt::gt() %>%
+      gt::tab_header(
+        title = if (params$county == "Statewide") {
+          "Measles Cases by Year and Age Group"
+        } else {
+          paste("Measles Cases by Year and Age Group: County of", params$county)
+        }
+      ) %>%
+      gt::tab_style(
+        style = gt::cell_text(
+          color = "#1E3A66",
+          weight = "bold",
+          size = "large"
+        ),
+        locations = gt::cells_title(groups = "title")
+      ) %>%
+      gt::cols_label(
+        county = "County",
+        year = "Year",
+        `0–4` = "0–4 Years",
+        `5–11` = "5–11 Years",
+        `12–19` = "12–19 Years",
+        `20–49` = "20–49 Years",
+        `50+` = "50+ Years",
+        Unknown = "Unknown"
+      ) %>%
+      gt::fmt_number(columns = -c(county, year), decimals = 0) %>%
+      gt::cols_align(
+        align = "center",
+        columns = -c(county)
+      ) %>%
+      gt::data_color(
+        columns = -c(county, year),
+        colors = scales::col_numeric(
+          palette = c("#FFF9E6", "#F9C941", "#1E3A66"),
+          domain = c(0, max(wide_cases[, -c(1, 2)], na.rm = TRUE))
+        )
+      ) %>%
+      gt::tab_style(
+        style = gt::cell_text(weight = "bold", color = "#1E3A66"),
+        locations = gt::cells_column_labels(gt::everything())
+      ) %>%
+      gt::tab_options(
+        table.width = gt::px(850),
+        heading.align = "left",
+        column_labels.background.color = "#F4E2A1",
+        column_labels.font.weight = "bold",
+        table.border.top.color = "#1E3A66",
+        table.border.bottom.color = "#1E3A66",
+        row.striping.background_color = "#FAFAFA",
+
+        # Compact layout (these are safe)
+        data_row.padding = gt::px(3),
+        row_group.padding = gt::px(2)
+      )
+  )
+}
+```
+
+```{r}
+# === Schools / Daycares view ===
+if (params$table_type %in% c(
+  "School Vaccine Coverage",
+  "Child Care Vaccine Coverage"
+)) {
+  sort_col <- if (!is.null(params$gt_sort_by) &&
+    params$table_type %in% c(
+      "School Vaccine Coverage",
+      "Child Care Vaccine Coverage"
+    )) {
+    params$gt_sort_by
+  } else {
+    "full_vax_pct"
+  }
+
+  # Guard: if sort_col not present, fall back
+  if (!sort_col %in% names(filtered_data)) sort_col <- "full_vax_pct"
+
+  # --- Sorting logic ---
+
+  if (params$table_type == "Child Care Vaccine Coverage" || (params$table_type == "School Vaccine Coverage" && params$boundary_type == "county")) {
+    if (sort_col %in% c("name", "county")) {
+      # Case-insensitive alphabetical sort
+      sorted_data <- filtered_data %>%
+        dplyr::arrange(tolower(.data[[sort_col]]))
+    } else {
+      # Numeric sorts: high → low
+      sorted_data <- filtered_data %>%
+        dplyr::arrange(dplyr::desc(.data[[sort_col]]))
+    }
+  } else {
+    if (sort_col %in% c("name", "district")) {
+      # Case-insensitive alphabetical sort
+      sorted_data <- filtered_data %>%
+        dplyr::arrange(tolower(.data[[sort_col]]))
+    } else {
+      # Numeric sorts: high → low
+      sorted_data <- filtered_data %>%
+        dplyr::arrange(dplyr::desc(.data[[sort_col]]))
+    }
+  }
+
+  # --- Build the gt table ---
+
+  if (params$table_type == "Child Care Vaccine Coverage" || (params$table_type == "School Vaccine Coverage" && params$boundary_type == "county")) {
+    table_gt <- sorted_data %>%
+      gt::gt() %>%
+      gt::tab_header(
+        title = paste(params$table_type, "Vaccination Summary:", params$county)
+      ) %>%
+      # Keep the ">" sign in the displayed values
+      gt::fmt(
+        columns = full_vax_pct,
+        fns = function(x) sorted_data$full_vax_pct_chr
+      ) %>%
+      # Apply custom color logic
+      gt::data_color(
+        columns = full_vax_pct,
+        colors = function(x) {
+          out <- rep("gray", length(x))
+          chr <- sorted_data$full_vax_pct_chr
+
+          out[grepl("^>", chr)] <- "darkgreen" # blurred (">95", ">98")
+          out[!grepl("^>", chr) & !is.na(x) & x < 85] <- "red"
+          out[!grepl("^>", chr) & !is.na(x) & x >= 85 & x < 90] <- "orange"
+          out[!grepl("^>", chr) & !is.na(x) & x >= 90 & x < 95] <- "gold"
+          out[!grepl("^>", chr) & !is.na(x) & x >= 95] <- "darkgreen"
+          out
+        }
+      ) %>%
+      gt::cols_hide(columns = full_vax_pct_chr)
+  } else if (params$table_type == "School Vaccine Coverage" && params$boundary_type == "district") {
+    table_gt <- sorted_data %>%
+      gt::gt() %>%
+      gt::tab_header(
+        title = paste(params$table_type, "Vaccination Summary:", params$district)
+      ) %>%
+      # Keep the ">" sign in the displayed values
+      gt::fmt(
+        columns = full_vax_pct,
+        fns = function(x) sorted_data$full_vax_pct_chr
+      ) %>%
+      # Apply custom color logic
+      gt::data_color(
+        columns = full_vax_pct,
+        fn = function(x) {
+          out <- rep("gray", length(x))
+          chr <- sorted_data$full_vax_pct_chr
+
+          out[grepl("^>", chr)] <- "darkgreen" # blurred (">95", ">98")
+          out[!grepl("^>", chr) & !is.na(x) & x < 85] <- "red"
+          out[!grepl("^>", chr) & !is.na(x) & x >= 85 & x < 90] <- "orange"
+          out[!grepl("^>", chr) & !is.na(x) & x >= 90 & x < 95] <- "gold"
+          out[!grepl("^>", chr) & !is.na(x) & x >= 95] <- "darkgreen"
+          out
+        }
+      ) %>%
+      gt::cols_hide(columns = full_vax_pct_chr)
+  }
+
+  if (params$table_type == "School Vaccine Coverage") {
+    if (params$boundary_type == "county") {
+      table_gt <- table_gt %>%
+        gt::cols_label(
+          county           = "County",
+          name             = "School Name",
+          type             = "School Type",
+          full_vax_pct     = "MMR %",
+          total_enrollment = "Enrollment"
+        ) %>%
+        gt::tab_source_note(
+          source_note = "Schools that did not report MMR vaccination coverage to MDH are not displayed."
+        )
+    } else {
+      table_gt <- table_gt %>%
+        gt::cols_label(
+          district         = "School District",
+          name             = "School Name",
+          type             = "School Type",
+          full_vax_pct     = "MMR %",
+          total_enrollment = "Enrollment"
+        ) %>%
+        gt::tab_source_note(
+          source_note = "Schools that did not report MMR vaccination coverage to MDH are not displayed."
+        )
+    }
+  } else if (params$table_type == "Child Care Vaccine Coverage") {
+    table_gt <- table_gt %>%
+      gt::fmt(
+        columns = full_vax_pct,
+        fns = function(x) {
+          ifelse(is.na(sorted_data$full_vax_pct_chr),
+            "Data redacted",
+            sorted_data$full_vax_pct_chr
+          )
+        }
+      ) %>%
+      gt::cols_hide(columns = c(is_blurred)) %>%
+      gt::cols_label(
+        county           = "County",
+        name             = "Child Care Name",
+        full_vax_pct     = "MMR %",
+        total_enrollment = "MMR Eligible"
+      ) %>%
+      gt::tab_source_note(
+        source_note = "MMR coverage is not displayed for facilities with fewer than 10 enrolled children."
+      )
+  }
+  table_gt
+}
+```
+
