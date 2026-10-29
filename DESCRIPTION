@@ -1,10 +1,38 @@
 Package: epiviewVPD
-Title: 
+Title: Dashboard of Facility Vaccine Coverage and Vaccine-Preventable Disease Cases
 Version: 0.0.0.9000
 Authors@R: 
-    
-Description: 
+    person("Michala", "Carlson", "madmc@umn.edu", role = c("aut", "cre"))
+Description: A suite of different visualization options for vaccination coverage
+  in schools, childcares, or other facilities/geographic units, built by the 
+  Midwest Analytics and Disease Modeling Center (MADMC). Originally made for
+  measles and MMR coverage in Minnesota, it has been generalized to allow multiple
+  geographic areas and jurisdictions to run with their own data. An optional
+  RShiny wrapper is also included, to make more interconnected visualizations.
 License: MIT + file LICENSE
+Depends: 
+  R (>= 4.3.0)
+Imports: 
+  dplyr,
+  DT,
+  ggplot2,
+  gt,
+  htmltools,
+  knitr,
+  leaflet,
+  maps,
+  rmarkdown,
+  scales,
+  sf,
+  shiny,
+  stats,
+  stringr,
+  tibble,
+  tidygeocoder,
+  tidyr
+Suggests:
+  testthat (>= 3.0.0)
+Config/testthat/edition: 3
 Config/roxygen2/version: 8.1.0
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
