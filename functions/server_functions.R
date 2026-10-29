@@ -77,8 +77,7 @@ calc_statewide_k12 <- function(df) {
 }
 
 statewide_k12_rate <- reactive({
-  calc_statewide_k12(school_demo_joined)
-  # this needs to be updated to draw from the correct data, but it involves updating the data wrangling script
+  calc_statewide_k12(county_map_data)
 })
 
 # ============================================================
