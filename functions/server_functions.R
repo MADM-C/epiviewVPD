@@ -60,14 +60,14 @@ format_vax_pct <- function(x) {
 
 calc_statewide_k12 <- function(df) {
   df <- df |>
-    dplyr::filter(!is.na(full_vax), !is.na(total_enrollment))
+    dplyr::filter(!is.na(full_vax), !is.na(enroll))
 
   if (nrow(df) == 0) {
     return(NA)
   }
 
   vaccinated <- sum(df$full_vax, na.rm = TRUE)
-  students <- sum(df$total_enrollment, na.rm = TRUE)
+  students <- sum(df$enroll, na.rm = TRUE)
 
   if (students == 0) {
     return(NA)
