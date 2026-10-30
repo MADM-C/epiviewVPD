@@ -76,11 +76,11 @@
 
 countyMapServer <- function(input, output, session, county_map_data, mn_counties, pal_county,
                             school_district_data = NULL, district_map_data = NULL) {
-  
+
   # === County-level OR District-Level Leaflet Map ===
   output$county_map <- renderLeaflet({
     is_district_mode <- !is.null(input$boundary_type) && input$boundary_type == "district"
-    
+
     if (is_district_mode && !is.null(district_map_data)) {
       county_district_map_dashboard(district_map_data)
     } else {
@@ -131,19 +131,17 @@ countyMapServer <- function(input, output, session, county_map_data, mn_counties
     if (is.null(district_map_data)) {
       return()
     }
-    
+
     selected_lower <- input$selected_district
     highlight_selected(district_map_data, selected_lower)
 
   })
-  
+
   # === Create county map title with statewide MMR coverage ===
-  
+
   output$county_map_title <- renderUI({
-    # TEMPORARY FIX FOR STATEWIDE MMR COVERAGE - NEED TO MAKE ACTUAL FIX LATER
-    # rate <- statewide_k12_rate()
-    rate <- 92.8
-    
+    rate <- statewide_k12_rate()
+
     tagList(
       h4(
         "MMR Vaccine Coverage by County (K-12 Schools Only)",
