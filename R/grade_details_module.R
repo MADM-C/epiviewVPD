@@ -99,14 +99,16 @@ gradeDetailsServer <- function(input, output, session,
                                mmr_grade,
                                format_vax_pct,
                                district_map_data = NULL) {
-  
+
   # === Table of Grade-Level MMR for Selected School ====
   output$grade_table <- render_gt({
-    school_id <- resolve_school_id(selected_school_id, 
+    school_id <- resolve_school_id(selected_school_id,
                                    input$selected_location,
                                    school_data = school_demo_joined)
 
     req(school_id)
+    # Grade-level data is only available for schools (not child cares)
+    req(school_id %in% school_demo_joined$mde_school_id)
 
     if (is_nonresponder(school_id, school_data = school_demo_joined)) {
       NULL
@@ -120,6 +122,8 @@ gradeDetailsServer <- function(input, output, session,
     school_id <- resolve_school_id(selected_school_id, input$selected_location, school_data = school_demo_joined)
 
     req(school_id)
+    # Grade-level data is only available for schools (not child cares)
+    req(school_id %in% school_demo_joined$mde_school_id)
 
     if (is_nonresponder(school_id, school_data = school_demo_joined)) {
       NULL
@@ -191,7 +195,7 @@ gradeDetailsServer <- function(input, output, session,
 
   # === UI: School/Daycare Selector ===
   output$school_daycare_selector <- renderUI({
-    
+
     location_choices <- get_location_choices_data(
       drop_sf = TRUE,
       boundary_type = input$boundary_type,
