@@ -118,7 +118,7 @@ subMapServer <- function(input, output, session,
 
 
   # === Location selection triggers highlight and fly ===
-  
+
   observeEvent(input$selected_location, {
     req(input$selected_location)
 
@@ -208,11 +208,11 @@ subMapServer <- function(input, output, session,
             )
           )
       } else if (nrow(childcare_row) > 0) {
-        selected_school_id(daycare_row$idsch)
+        selected_school_id(childcare_row$idsch)
         leafletProxy("sub_map") %>%
           clearGroup("highlight") %>%
           addCircleMarkers(
-            data = daycare_row,
+            data = childcare_row,
             radius = 9,
             color = "black",
             weight = 3,
@@ -220,12 +220,12 @@ subMapServer <- function(input, output, session,
             fillOpacity = 1,
             group = "highlight",
             popup = paste0(
-              "<b>", daycare_row$daycare_name, "</b><br>",
-              "MMR: ", format_vax_pct(daycare_row$full_vax_pct)
+              "<b>", childcare_row$daycare_name, "</b><br>",
+              "MMR: ", format_vax_pct(childcare_row$full_vax_pct)
             )
           )
       }
-      # ******** END REACTIVITY PROBLEM AREA 
+      # ******** END REACTIVITY PROBLEM AREA
     }
   })
 
