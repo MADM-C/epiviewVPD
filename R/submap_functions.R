@@ -198,7 +198,7 @@ submap_title_vax <- function(boundary_type,
   if (is_district_mode) {
     boundary_rate <- district_data |>
       dplyr::filter(join_key == selected_district) |>
-      dplyr::pull(mmr_vax_pert) |> # need adaptable variables names
+      dplyr::pull(mmr_vax_pert) |> # TODO(#16): Minnesota column name
       dplyr::first()
   } else {
     boundary_rate <- county_data |>

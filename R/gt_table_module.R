@@ -3,7 +3,7 @@
 # Purpose
 # -------
 # This module generates the statewide data tables displayed on the
-# "Tables" tab of the dashboard (now called "Summary Figures").
+# "Summary Figures" tab of the dashboard.
 # It provides summary views of:
 # • School vaccination coverage
 # • Child care vaccination coverage

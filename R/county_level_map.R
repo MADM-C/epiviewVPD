@@ -6,7 +6,7 @@
 #
 # Purpose
 # -------
-# This module renders the main Minnesota county map on the dashboard.
+# This module renders the main county map on the dashboard.
 # The map displays county-level MMR vaccination coverage for K–12 schools
 # and provides the primary geographic entry point for exploring the app.
 # Users can click counties to drill down into facility-level data shown
@@ -14,7 +14,7 @@
 #
 # Core Features
 # -------------
-# • Displays Minnesota counties colored by MMR vaccination coverage.
+# • Displays the state's counties colored by MMR vaccination coverage.
 # • Shows county demographic context including total enrollment,
 #   students of color, and free/reduced lunch eligibility.
 # • Optionally switches to historical measles case data when enabled.
@@ -24,7 +24,7 @@
 # Data Sources
 # ------------
 # county_map_data
-#   Spatial dataset of Minnesota counties joined with vaccination
+#   Spatial dataset of the state's counties joined with vaccination
 #   coverage and aggregated school demographic data.
 #
 # measles_cases

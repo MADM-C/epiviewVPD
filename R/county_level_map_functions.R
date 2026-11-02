@@ -32,11 +32,9 @@ county_district_map_dashboard <- function(map_data, pal_county) {
     boundary_view <- "District"
   }
 
-  # ----------- MN SPECIFIC THINGS THAT SHOULD BE STANDARDIZED IN DATA PIPELINE -------------
-  # Need to designate the district layer id (county or district ID)
-  # Right now, MN uses county_lower as the layer id - we should consider switching to the FIPS code
-
-  # MN-specific code to define a layer_id variable
+  # ----------- Layer ID, name, enrollment, and coverage for the selected boundary -------------
+  # TODO(#16): Minnesota-specific keys. Counties are matched on county_lower and
+  # districts on join_key; the CSV loader will match counties by FIPS code.
 
   if (boundary_view == "County"){
 
@@ -144,7 +142,8 @@ highlight_selected <- function(map_data, selected_lower) {
     boundary_view <- "District"
   }
 
-  # ----------- MN SPECIFIC THINGS THAT SHOULD BE STANDARDIZED IN DATA PIPELINE -------------
+  # ----------- Layer ID for the selected boundary -------------
+  # TODO(#16): Minnesota-specific keys (county_lower, join_key)
 
   if (boundary_view == "County") {
     map_data$layer_id <- map_data$county_lower

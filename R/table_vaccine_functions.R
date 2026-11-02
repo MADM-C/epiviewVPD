@@ -1,7 +1,6 @@
-# ==== GT TABLE HELPERS: vaccination coverage tables ==== 
-# NOTE: There are multiple points in this code that will need to be edited
-# in the future so that it's better able to handle being adapted to different
-# diseases
+# ==== GT TABLE HELPERS: vaccination coverage tables ====
+# TODO(#20): parts of this file are specific to measles and MMR
+# (labels such as "MMR Eligible", column names)
 
 build_district_lookup <- function(district_map_data) {
   district_map_data %>%
@@ -13,7 +12,7 @@ build_district_lookup <- function(district_map_data) {
 build_school_table <- function(school_demo_joined, boundary = "county", district_data = NULL) {
   school_df <- school_demo_joined %>%
     st_drop_geometry()
-  
+
   school_df <- if (boundary == "district") {
     school_df %>%
       left_join(district_data, by = c("mde_district_key" = "join_key")) %>%
@@ -22,7 +21,7 @@ build_school_table <- function(school_demo_joined, boundary = "county", district
     school_df %>%
       mutate(area = str_to_title(COUNTYNAME))
   }
-  
+
   school_df %>%
     mutate(
       area,
@@ -95,13 +94,13 @@ build_daycare_table <- function(daycare_joined) {
 sort_coverage_table <- function(filtered_data, table_type, boundary_type, sort_by) {
   sort_col <- if (is.null(sort_by)) "full_vax_pct" else sort_by
   if (!sort_col %in% names(filtered_data)) sort_col <- "full_vax_pct"
-  
+
   area_col <- if (table_type == "School Vaccine Coverage" && boundary_type == "district") {
     "district"
   } else {
     "county"
   }
-  
+
   if (sort_col %in% c("name", area_col)) {
     filtered_data %>%
       arrange(tolower(.data[[sort_col]]))
@@ -114,7 +113,7 @@ sort_coverage_table <- function(filtered_data, table_type, boundary_type, sort_b
 # `chr` is the original coverage string; values starting with ">" are blurred.
 mmr_colors <- function(x, chr) {
   out <- rep("gray", length(x))
-  
+
   out[grepl("^>", chr)] <- "darkgreen"
   out[!grepl("^>", chr) & !is.na(x) & x < 85] <- "red"
   out[!grepl("^>", chr) & !is.na(x) & x >= 85 & x < 90] <- "orange"
@@ -133,7 +132,7 @@ render_coverage_gt <- function(sorted_data,
   } else {
     selected_county
   }
-  
+
   table_gt <- sorted_data %>%
     gt() %>%
     tab_header(
@@ -149,7 +148,7 @@ render_coverage_gt <- function(sorted_data,
       fn = function(x) mmr_colors(x, sorted_data$full_vax_pct_chr)
     ) %>%
     cols_hide(columns = full_vax_pct_chr)
-  
+
   if (table_type == "School Vaccine Coverage") {
     if (boundary_type == "county") {
       table_gt <- table_gt %>%
@@ -198,6 +197,6 @@ render_coverage_gt <- function(sorted_data,
         source_note = "MMR coverage is not displayed for facilities with fewer than 10 enrolled children."
       )
   }
-  
+
   table_gt
 }

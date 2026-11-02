@@ -3,35 +3,35 @@
 # ============================================================
 
 grade_level_plot <- function(grade_data = NULL, school_id) {
-  
-  grade_data <- grade_data |> 
-    dplyr::filter(mde_school_id == school_id) |> 
+
+  grade_data <- grade_data |>
+    dplyr::filter(mde_school_id == school_id) |>
     mutate(
       grade = ifelse(grade == 0, "K", as.character(grade)),
       grade = factor(grade, levels = c(as.character(12:1), "K")),
       # Numeric representations (NA = redacted)
       full_num = parse_vax_num(full_vax_pct),
       partial_num = parse_vax_num(partial_vax_pct),
-      
+
       # Fill color for the full-vax segment
       full_color = coverage_color(full_vax_pct, full_num),
-      
+
       # Label text for the full-vax value
       full_label = format_vax_pct(full_vax_pct)
     )
-  
+
   if (all(is.na(grade_data$full_num))) {
     return(NULL)
   }
-  
+
   ymax_data <- suppressWarnings(max(grade_data$full_num, na.rm = TRUE))
-  
+
   if (!is.finite(ymax_data)) {
     return(NULL)
   }
-  
+
   ymax_axis <- ymax_data + 18
-  
+
   # ----------------------------------------------------------
   # Label data: one row per grade, anchored to the outer edge
   # of the entire stacked bar.
@@ -41,7 +41,7 @@ grade_level_plot <- function(grade_data = NULL, school_id) {
   full_label_data <- grade_data %>%
     filter(!is.na(full_num)) %>%
     select(grade, y_pos = full_num, label = full_label)
-  
+
   ggplot(grade_data, aes(x = grade, y = full_num, fill = full_color)) +
     geom_col(width = 0.6, na.rm = TRUE) +
     scale_fill_identity() +
@@ -60,8 +60,6 @@ grade_level_plot <- function(grade_data = NULL, school_id) {
     labs(x = "Grade", y = "Vaccine %") +
     theme_minimal(base_size = 14) +
     theme(
-      #plot.background  = element_rect(fill = "#F7FBFC", color = NA),
-      #panel.background = element_rect(fill = "#FFFFFF", color = NA),
       panel.border     = element_rect(fill = NA, color = "#88C5D3", linewidth = 0.8),
       plot.title = element_text(hjust = 0.5, face = "bold"),
       axis.title.y = element_text(vjust = 1.2),

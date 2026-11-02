@@ -133,13 +133,14 @@ subMapServer <- function(input, output, session,
       school_data = school_demo_joined,
       childcare_data = daycare_joined
     )
-    # **** HERE IS WHERE MY ATTEMPT AT FUNCTIONIZING MESSED WITH THE REACTIVITY
+    # Highlight the selected school or child care on the submap and store its
+    # ID in selected_school_id
     point_type <- input$point_type
 
     if (point_type == "Schools") {
       selected_row <- area$schools %>%
-        dplyr::filter(school_name == input$selected_location) %>%
-        dplyr::slice(1)
+        filter(school_name == input$selected_location) %>%
+        slice(1)
 
       if (nrow(selected_row) > 0) {
         selected_school_id(selected_row$mde_school_id)
@@ -161,7 +162,7 @@ subMapServer <- function(input, output, session,
       }
     } else if (point_type == "Child Cares") {
       selected_row <- area$childcares %>%
-        dplyr::filter(idsch == input$selected_location)
+        filter(idsch == input$selected_location)
 
       if (nrow(selected_row) > 0) {
         selected_school_id(selected_row$idsch)
@@ -183,12 +184,12 @@ subMapServer <- function(input, output, session,
       }
     } else if (point_type == "Schools and Child Cares") {
       school_row <- area$schools %>%
-        dplyr::filter(school_name == input$selected_location) %>%
-        dplyr::slice(1)
+        filter(school_name == input$selected_location) %>%
+        slice(1)
 
       childcare_row <- area$childcares %>%
-        dplyr::filter(daycare_name == input$selected_location) %>%
-        dplyr::slice(1)
+        filter(daycare_name == input$selected_location) %>%
+        slice(1)
 
       if (nrow(school_row) > 0) {
         selected_school_id(school_row$mde_school_id)
@@ -225,7 +226,6 @@ subMapServer <- function(input, output, session,
             )
           )
       }
-      # ******** END REACTIVITY PROBLEM AREA
     }
   })
 

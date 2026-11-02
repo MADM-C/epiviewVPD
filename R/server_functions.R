@@ -26,7 +26,7 @@ resolve_school_id <- function(school_id_reactive, selected_location, school_data
 is_nonresponder <- function(school_id, school_data = NULL) {
   school_data |>
     sf::st_drop_geometry() |>
-    dplyr::filter(mde_school_id == school_id) |> # need adaptable variable names
+    dplyr::filter(mde_school_id == school_id) |> # TODO(#16): Minnesota column name
     dplyr::mutate(non_responder = ifelse((full_vax_pct == 0 & !is.na(full_vax_pct)) &
                                            (partial_vax_pct == 0 & !is.na(partial_vax_pct)), TRUE, FALSE)) |>
     pull(non_responder)
@@ -116,7 +116,7 @@ extract_facility_choices <- function(school_data = NULL, childcare_data = NULL, 
     df <- childcare_data |>
       dplyr::filter(!is.na(idsch), !is.na(daycare_name))
 
-    lc <- stats::setNames(as.character(df$idsch), df$daycare_name) # need adaptable variable names
+    lc <- stats::setNames(as.character(df$idsch), df$daycare_name) # TODO(#16): Minnesota column name
     lc[order(names(lc))]
   } else {
     # "All" or unselected mode
@@ -162,7 +162,7 @@ get_location_choices_data <- function(drop_sf,
 
     # Filter spatial + ID matches
     spatial_schools <- filter_spatial_safe(school_data, valid_shape)
-    id_schools <- dplyr::filter(school_data, mde_district_key == selected_district) # need adaptable variable names
+    id_schools <- dplyr::filter(school_data, mde_district_key == selected_district) # TODO(#16): Minnesota column name
 
     schools_filtered <- dplyr::bind_rows(spatial_schools, id_schools) |>
       dplyr::distinct(mde_school_id, .keep_all = TRUE)
