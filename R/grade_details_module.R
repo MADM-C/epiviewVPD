@@ -98,6 +98,7 @@ gradeDetailsServer <- function(input, output, session,
                                daycare_joined,
                                mmr_grade,
                                format_vax_pct,
+                               county_map_data,
                                district_map_data = NULL) {
 
   # === Table of Grade-Level MMR for Selected School ====
@@ -231,7 +232,7 @@ gradeDetailsServer <- function(input, output, session,
       temp_report <- file.path(temp_dir, "dashboard_report.Rmd")
 
       # Copy the Rmd template to temp directory
-      file.copy("dashboard_report.Rmd", temp_report, overwrite = TRUE)
+      file.copy(system.file("reports", "dashboard_report.Rmd", package = "epiviewVPD"), temp_report, overwrite = TRUE)
 
       # Set up parameters to pass to the Rmd
       params <- list(
@@ -253,7 +254,7 @@ gradeDetailsServer <- function(input, output, session,
         temp_report,
         output_file = file,
         params = params,
-        envir = new.env(parent = globalenv())
+        envir = new.env(parent = asNamespace("epiviewVPD"))
       )
     }
   )

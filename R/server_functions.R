@@ -76,10 +76,6 @@ calc_statewide_k12 <- function(df) {
   round(100 * vaccinated / students, 1)
 }
 
-statewide_k12_rate <- reactive({
-  calc_statewide_k12(county_map_data)
-})
-
 # ============================================================
 # HELPER: Spatial-Based Filter
 # ============================================================
