@@ -124,17 +124,18 @@ if (params$table_type == "Historical Measles Cases") {
 ```{r}
 # --- Recreate GT Table for Historical ---
 
-if (params$table_type == "Historical Measles Cases") {
-  if (nrow(filtered_data) == 0) {
-    return(gt::gt(data.frame(Message = "No historical cases for selected county")))
-  }
-} else {
-  if (nrow(filtered_data) == 0) {
-    return(gt::gt(data.frame(Message = "No data for selected location")))
-  }
-}
-
-if (params$table_type == "Historical Measles Cases") {
+# No rows (e.g. a county with no recorded cases): show a message instead of
+# a table. This has to be one if/else with the cases table below: in an R
+# Markdown chunk, return() doesn't skip the code that follows it.
+if (nrow(filtered_data) == 0) {
+  gt::gt(data.frame(
+    Message = if (params$table_type == "Historical Measles Cases") {
+      "No historical cases for selected county"
+    } else {
+      "No data for selected location"
+    }
+  ))
+} else if (params$table_type == "Historical Measles Cases") {
   # Define all age groups that should always appear
   all_age_groups <- c("0–4", "5–11", "12–19", "20–49", "50+", "Unknown")
 
@@ -230,7 +231,8 @@ if (params$table_type == "Historical Measles Cases") {
 
 ```{r}
 # === Schools / Daycares view ===
-if (params$table_type %in% c(
+# Skipped when there are no rows; the chunk above shows a message instead.
+if (nrow(filtered_data) > 0 && params$table_type %in% c(
   "School Vaccine Coverage",
   "Child Care Vaccine Coverage"
 )) {
