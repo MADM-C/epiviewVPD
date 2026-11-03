@@ -38,7 +38,7 @@ coverage_color <- function(value_raw, value_num) {
 # ============================================================
 
 extract_facility_choices <- function(school_data = NULL, childcare_data = NULL, point_type) {
-  
+
   # Clean sf geometry if present
   if (inherits(school_data, "sf")) {
     school_data <- sf::st_drop_geometry(school_data)
@@ -46,22 +46,22 @@ extract_facility_choices <- function(school_data = NULL, childcare_data = NULL, 
   if (inherits(childcare_data, "sf")) {
     childcare_data <- sf::st_drop_geometry(childcare_data)
     }
-  
+
   if (isTRUE(point_type == "Schools")) {
-    
+
     school_data %>%
       dplyr::pull(school_name) %>%
       unique() %>%
       sort()
-    
+
   } else if (isTRUE(point_type == "Child Cares")) {
-    
+
     df <- childcare_data %>%
       dplyr::filter(!is.na(idsch), !is.na(daycare_name))
-    
-    lc <- stats::setNames(as.character(df$idsch), df$daycare_name) # need adaptable variable names
+
+    lc <- stats::setNames(as.character(df$idsch), df$daycare_name) # TODO(#16): Minnesota column name
     lc[order(names(lc))]
-    
+
   } else {
     # "All" or unselected mode
     c(

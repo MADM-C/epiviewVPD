@@ -3,7 +3,7 @@
 # ============================================================
 #
 # This map is shown when the user selects "Historical Measles
-# Cases" in the dashboard. It displays Minnesota counties with
+# Cases" in the dashboard. It displays the state's counties with
 # circle markers representing the number of reported measles
 # cases within the selected year range and age group.
 #
@@ -38,7 +38,7 @@ output$statewide_map <- renderLeaflet({
       centroid = sf::st_centroid(geometry)
     ) |>
     sf::st_set_geometry("centroid")
-  
+
   # ---- build map ----
   map <- leaflet(
     mn_counties,
@@ -60,7 +60,7 @@ output$statewide_map <- renderLeaflet({
         opacity = 0.9
       )
     )
-  
+
   # ---- add case circles safely ----
   if (nrow(filtered_cases) > 0) {
     map <- map |>
@@ -83,7 +83,7 @@ output$statewide_map <- renderLeaflet({
           ifelse(n_cases == 1, "", "s")
         )
       ) |>
-      # ===== OLD CLEAN LEGEND =====
+      # Legend: case count circle size
     addControl(
       html = HTML("
 <div style='padding:6px 8px;
@@ -115,7 +115,7 @@ output$statewide_map <- renderLeaflet({
       position = "topright"
     )
   }
-  
+
   map
   })
 }

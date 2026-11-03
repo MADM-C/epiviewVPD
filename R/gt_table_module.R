@@ -3,7 +3,7 @@
 # Purpose
 # -------
 # This module generates the statewide data tables displayed on the
-# "Tables" tab of the dashboard (now called "Summary Figures"). 
+# "Summary Figures" tab of the dashboard.
 # It provides summary views of:
 # • School vaccination coverage
 # • Child care vaccination coverage
@@ -104,28 +104,28 @@ gtServer <- function(input, output, session,
                      mn_counties,
                      district_map_data = NULL) {
   # ---------- Build School Table (with demographics) ----------
-  
+
   district_data <- build_district_lookup(district_map_data)
-  
+
   school_table_county <- build_school_table(school_demo_joined, "county")
   school_table_district <- build_school_table(school_demo_joined, "district", district_data)
-  
+
   # ---------- Build Daycare Table ----------
   daycare_table <- build_daycare_table(daycare_joined)
-  
+
   # ---------- Build Cases Table ----------
   case_table <- build_case_table(measles_cases)
-  
+
   # ---------- Keep the county dropdown in sync with selected table ----------
-  
+
   observeEvent(input$table_type, {
     all_counties <- sort(unique(str_to_title(mn_counties$county_name)))
-    
+
     current_selection <- input$gt_selected_county
-    
+
     if (input$table_type == "Historical Measles Cases") {
       new_choices <- c("Statewide", all_counties)
-      
+
       if (!is.null(current_selection) && current_selection %in% new_choices) {
         new_selected <- current_selection
       } else {
@@ -151,20 +151,20 @@ gtServer <- function(input, output, session,
       )
     }
   })
-  
+
   observeEvent(input$gt_boundary_type, {
     req(input$table_type == "School Vaccine Coverage")
-    
+
     if (input$gt_boundary_type == "district") {
       all_districts <- sort(unique(district_data$PREFNAME))
       current_selection <- input$gt_selected_district
-      
+
       if (!is.null(current_selection) && current_selection %in% all_districts) {
         new_selected <- current_selection
       } else {
         new_selected <- all_districts[1]
       }
-      
+
       updateSelectInput(
         session,
         "gt_selected_district",
@@ -173,15 +173,15 @@ gtServer <- function(input, output, session,
       )
     } else if (input$gt_boundary_type == "county") {
       all_counties <- sort(unique(str_to_title(mn_counties$county_name)))
-      
+
       current_selection <- input$gt_selected_county
-      
+
       if (!is.null(current_selection) && current_selection %in% all_counties) {
         new_selected <- current_selection
       } else {
         new_selected <- all_counties[1]
       }
-      
+
       updateSelectInput(
         session,
         "gt_selected_county",
@@ -190,12 +190,12 @@ gtServer <- function(input, output, session,
       )
     }
   })
-  
-  
+
+
   # ---------- Render GT Summary Table ----------
   output$summary_table <- render_gt({
     req(input$table_type, input$gt_selected_county)
-    
+
     if (input$table_type == "School Vaccine Coverage" && input$gt_boundary_type == "district") {
       table_to_use <- school_table_district
     } else {
@@ -205,7 +205,7 @@ gtServer <- function(input, output, session,
                              "Historical Measles Cases" = case_table
       )
     }
-    
+
     filtered_data <- if (input$table_type == "Historical Measles Cases") {
       filter_cases(table_to_use, input$gt_selected_county)
     } else if (input$table_type == "School Vaccine Coverage" && input$gt_boundary_type == "district") {
@@ -215,7 +215,7 @@ gtServer <- function(input, output, session,
       table_to_use %>%
         filter(county == input$gt_selected_county)
     }
-    
+
     if (input$table_type == "Historical Measles Cases") {
       if (nrow(filtered_data) == 0) {
         return(gt(data.frame(Message = "No historical cases for selected county")))
@@ -225,18 +225,18 @@ gtServer <- function(input, output, session,
         return(gt(data.frame(Message = "No data for selected location")))
       }
     }
-    
+
     if (input$table_type == "Historical Measles Cases") {
       return(render_cases_gt(filtered_data, input$gt_selected_county))
     }
-    
+
     sorted_data <- sort_coverage_table(
       filtered_data,
       input$table_type,
       input$gt_boundary_type,
       input$gt_sort_by
     )
-    
+
     render_coverage_gt(
       sorted_data,
       input$table_type,
@@ -245,15 +245,15 @@ gtServer <- function(input, output, session,
       input$gt_selected_district
     )
   })
-  
+
   # ---------- Epicurve (MADMC color theme) ----------
   output$epi_curve <- renderPlot({
     req(input$table_type == "Historical Measles Cases", input$gt_selected_county)
     plot_epicurve(case_table, input$gt_selected_county)
   })
-  
+
   # --- GT Tab Download Summary ---
-  
+
   output$download_summary_figures <- downloadHandler(
     filename = function() {
       paste0(
@@ -275,10 +275,10 @@ gtServer <- function(input, output, session,
       # Create a temporary directory for the report
       temp_dir <- tempdir()
       temp_report <- file.path(temp_dir, "gt_summary_report.Rmd")
-      
+
       # Copy the Rmd template to temp directory
-      file.copy("gt_summary_report.Rmd", temp_report, overwrite = TRUE)
-      
+      file.copy(system.file("reports", "gt_summary_report.Rmd", package = "epiviewVPD"), temp_report, overwrite = TRUE)
+
       # Set up parameters to pass to the Rmd
       params <- list(
         school_table_county = school_table_county,
@@ -292,13 +292,13 @@ gtServer <- function(input, output, session,
         district = input$gt_selected_district,
         gt_sort_by = input$gt_sort_by
       )
-      
+
       # Render the report
       rmarkdown::render(
         temp_report,
         output_file = file,
         params = params,
-        envir = new.env(parent = globalenv())
+        envir = new.env(parent = asNamespace("epiviewVPD"))
       )
     }
   )

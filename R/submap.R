@@ -118,7 +118,7 @@ subMapServer <- function(input, output, session,
 
 
   # === Location selection triggers highlight and fly ===
-  
+
   observeEvent(input$selected_location, {
     req(input$selected_location)
 
@@ -133,13 +133,14 @@ subMapServer <- function(input, output, session,
       school_data = school_demo_joined,
       childcare_data = daycare_joined
     )
-    # **** HERE IS WHERE MY ATTEMPT AT FUNCTIONIZING MESSED WITH THE REACTIVITY
+    # Highlight the selected school or child care on the submap and store its
+    # ID in selected_school_id
     point_type <- input$point_type
 
     if (point_type == "Schools") {
       selected_row <- area$schools %>%
-        dplyr::filter(school_name == input$selected_location) %>%
-        dplyr::slice(1)
+        filter(school_name == input$selected_location) %>%
+        slice(1)
 
       if (nrow(selected_row) > 0) {
         selected_school_id(selected_row$mde_school_id)
@@ -161,7 +162,7 @@ subMapServer <- function(input, output, session,
       }
     } else if (point_type == "Child Cares") {
       selected_row <- area$childcares %>%
-        dplyr::filter(idsch == input$selected_location)
+        filter(idsch == input$selected_location)
 
       if (nrow(selected_row) > 0) {
         selected_school_id(selected_row$idsch)
@@ -183,12 +184,12 @@ subMapServer <- function(input, output, session,
       }
     } else if (point_type == "Schools and Child Cares") {
       school_row <- area$schools %>%
-        dplyr::filter(school_name == input$selected_location) %>%
-        dplyr::slice(1)
+        filter(school_name == input$selected_location) %>%
+        slice(1)
 
       childcare_row <- area$childcares %>%
-        dplyr::filter(daycare_name == input$selected_location) %>%
-        dplyr::slice(1)
+        filter(daycare_name == input$selected_location) %>%
+        slice(1)
 
       if (nrow(school_row) > 0) {
         selected_school_id(school_row$mde_school_id)
@@ -208,11 +209,11 @@ subMapServer <- function(input, output, session,
             )
           )
       } else if (nrow(childcare_row) > 0) {
-        selected_school_id(daycare_row$idsch)
+        selected_school_id(childcare_row$idsch)
         leafletProxy("sub_map") %>%
           clearGroup("highlight") %>%
           addCircleMarkers(
-            data = daycare_row,
+            data = childcare_row,
             radius = 9,
             color = "black",
             weight = 3,
@@ -220,12 +221,11 @@ subMapServer <- function(input, output, session,
             fillOpacity = 1,
             group = "highlight",
             popup = paste0(
-              "<b>", daycare_row$daycare_name, "</b><br>",
-              "MMR: ", format_vax_pct(daycare_row$full_vax_pct)
+              "<b>", childcare_row$daycare_name, "</b><br>",
+              "MMR: ", format_vax_pct(childcare_row$full_vax_pct)
             )
           )
       }
-      # ******** END REACTIVITY PROBLEM AREA 
     }
   })
 

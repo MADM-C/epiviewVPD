@@ -6,7 +6,7 @@
 #
 # Purpose
 # -------
-# This module renders the main Minnesota county map on the dashboard.
+# This module renders the main county map on the dashboard.
 # The map displays county-level MMR vaccination coverage for K–12 schools
 # and provides the primary geographic entry point for exploring the app.
 # Users can click counties to drill down into facility-level data shown
@@ -14,7 +14,7 @@
 #
 # Core Features
 # -------------
-# • Displays Minnesota counties colored by MMR vaccination coverage.
+# • Displays the state's counties colored by MMR vaccination coverage.
 # • Shows county demographic context including total enrollment,
 #   students of color, and free/reduced lunch eligibility.
 # • Optionally switches to historical measles case data when enabled.
@@ -24,7 +24,7 @@
 # Data Sources
 # ------------
 # county_map_data
-#   Spatial dataset of Minnesota counties joined with vaccination
+#   Spatial dataset of the state's counties joined with vaccination
 #   coverage and aggregated school demographic data.
 #
 # measles_cases
@@ -82,9 +82,9 @@ countyMapServer <- function(input, output, session, county_map_data, mn_counties
     is_district_mode <- !is.null(input$boundary_type) && input$boundary_type == "district"
 
     if (is_district_mode && !is.null(district_map_data)) {
-      county_district_map_dashboard(district_map_data)
+      county_district_map_dashboard(district_map_data, pal_county)
     } else {
-      county_district_map_dashboard(county_map_data)
+      county_district_map_dashboard(county_map_data, pal_county)
     }
   })
 
@@ -140,7 +140,7 @@ countyMapServer <- function(input, output, session, county_map_data, mn_counties
   # === Create county map title with statewide MMR coverage ===
 
   output$county_map_title <- renderUI({
-    rate <- statewide_k12_rate()
+    rate <- calc_statewide_k12(county_map_data)
 
     tagList(
       h4(

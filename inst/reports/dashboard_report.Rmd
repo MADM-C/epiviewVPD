@@ -242,9 +242,9 @@ cat('<style> .leaflet-container { background: #FFF; } </style>')
 # bring in statewide plot
 is_district_mode <- !is.null(boundary) && boundary %in% c("district")
 if (is_district_mode && !is.null(district_data)) {
-      county_district_map_dashboard(district_data)
+      county_district_map_dashboard(district_data, county_palette(county_data$full_vax_pct))
   } else {
-    county_district_map_dashboard(county_data)
+    county_district_map_dashboard(county_data, county_palette(county_data$full_vax_pct))
   }
 
 ```

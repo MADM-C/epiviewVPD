@@ -39,7 +39,7 @@ combineSchoolDaycareData <- function(school_data, daycare_data,
   # Process daycare data if available and valid
   if (!is.null(daycare_data) && nrow(daycare_data) > 0 && daycare_name_col %in% names(daycare_data)) {
     # Create standardized daycare dataframe with essential columns
-    # Note: daycares don't have contact_info, so we'll add it as empty later
+    # Child cares have no contact_info; it is added as an empty column below
     daycares_clean <- data.frame(
       facility_name = daycare_data[[daycare_name_col]],
       facility_type = "Daycare",

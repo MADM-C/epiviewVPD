@@ -1,7 +1,6 @@
 # ==== MEASLES CASE HELPERS: case table, case filtering, case gt table, epicurve ===
-# NOTE: There are multiple points in this code that will need to be edited
-# in the future so that it's better able to handle being adapted to different
-# diseases
+# TODO(#20): parts of this file are specific to measles (labels,
+# object names); TODO(#14): case age groups are hard-coded
 
 build_case_table <- function(measles_cases) {
   measles_cases %>%
@@ -24,10 +23,10 @@ filter_cases <- function(case_table, selected_county) {
 
 render_cases_gt <- function(filtered_data, selected_county) {
   all_age_groups <- c("0–4", "5–11", "12–19", "20–49", "50+", "Unknown")
-  
+
   wide_cases <- filtered_data %>%
     mutate(
-      county = as.character(county), 
+      county = as.character(county),
       age_group = gsub("-", "–", age_group),
       age_group = factor(age_group, levels = all_age_groups, ordered = TRUE)
     ) %>%
@@ -51,7 +50,7 @@ render_cases_gt <- function(filtered_data, selected_county) {
       year,
       all_of(all_age_groups[all_age_groups %in% names(.)])
     )
-  
+
   wide_cases %>%
     gt() %>%
     tab_header(
@@ -112,16 +111,16 @@ plot_epicurve <- function(case_table, selected_county) {
   all_years <- sort(unique(case_table$year))
   min_year <- min(all_years, na.rm = TRUE)
   max_year <- max(all_years, na.rm = TRUE)
-  
+
   # Years with no cases still get a zero-height bar.
   county_years <- data.frame(year = seq(min_year, max_year, by = 1))
-  
+
   county_cases <- filter_cases(case_table, selected_county) %>%
     group_by(year) %>%
     summarise(cases = sum(n_cases, na.rm = TRUE), .groups = "drop") %>%
     right_join(county_years, by = "year") %>%
     mutate(cases = replace_na(cases, 0L))
-  
+
   ggplot(county_cases, aes(x = year, y = cases)) +
     geom_col(width = 0.75, fill = "#1E3A66") +
     geom_text(

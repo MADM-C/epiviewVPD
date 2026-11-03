@@ -3,10 +3,10 @@
 # ============================================================
 
 grade_level_table <- function(grade_data = NULL, school_id) {
-  
-  table_data <- grade_data |> 
-    dplyr::filter(mde_school_id == school_id) |> # need adaptable variable names
-    dplyr::select(grade, full_vax_pct, partial_vax_pct, medical_pct, nonmedical_pct) |> 
+
+  table_data <- grade_data |>
+    dplyr::filter(mde_school_id == school_id) |> # TODO(#16): Minnesota column name
+    dplyr::select(grade, full_vax_pct, partial_vax_pct, medical_pct, nonmedical_pct) |>
     mutate(
       grade = ifelse(grade == 0, "K", as.character(grade)),
       grade = factor(grade, levels = c("K", as.character(1:12))),
@@ -31,21 +31,21 @@ grade_level_table <- function(grade_data = NULL, school_id) {
         "Redacted",
         format_vax_pct(nonmedical_pct)
       )
-    ) |> 
-    arrange(grade) |> 
+    ) |>
+    arrange(grade) |>
     dplyr::select(grade,full_vax_display, partial_vax_display, medical_pct, nonmedical_pct)
-  
-  table_data |> 
-    gt() |> 
+
+  table_data |>
+    gt() |>
     cols_label(
       grade = "Grade",
       full_vax_display = html("Fully <br>Vaccinated"),
       partial_vax_display = html("Partially Vaccinated /<br>No Doses"),
       medical_pct = html("Medical <br>Exemption"),
       nonmedical_pct = html("Non-Medical <br>Exemption")
-    ) |> 
-    cols_align(align = "center", columns = everything()) |> 
-    cols_align(align = "left",   columns = grade) |> 
+    ) |>
+    cols_align(align = "center", columns = everything()) |>
+    cols_align(align = "left",   columns = grade) |>
     # ---- Header: app navy ----
   tab_style(
     style = list(
@@ -53,26 +53,26 @@ grade_level_table <- function(grade_data = NULL, school_id) {
       cell_text(color = "white", weight = "bold")
     ),
     locations = cells_column_labels()
-  ) |> 
-    
+  ) |>
+
     # ---- Redacted cells ----
   tab_style(
     style = list(cell_fill(color = "#F0F0F0"), cell_text(color = "#888888", style = "italic")),
     locations = cells_body(columns = full_vax_display, rows = full_vax_display == "Redacted")
-  ) |> 
+  ) |>
     tab_style(
       style = list(cell_fill(color = "#F0F0F0"), cell_text(color = "#888888", style = "italic")),
       locations = cells_body(columns = partial_vax_display, rows = partial_vax_display == "Redacted")
-    ) |> 
+    ) |>
     tab_style(
       style = list(cell_fill(color = "#F0F0F0"), cell_text(color = "#888888", style = "italic")),
       locations = cells_body(columns = medical_pct, rows = medical_pct == "Redacted")
-    ) |> 
+    ) |>
     tab_style(
       style = list(cell_fill(color = "#F0F0F0"), cell_text(color = "#888888", style = "italic")),
       locations = cells_body(columns = nonmedical_pct, rows = nonmedical_pct == "Redacted")
-    ) |> 
-    
+    ) |>
+
     # ---- Table options: borders and sizing ----
   tab_options(
     table.border.top.color       = "#88C5D3",
@@ -89,6 +89,6 @@ grade_level_table <- function(grade_data = NULL, school_id) {
     footnotes.font.size          = px(11),
     row.striping.background_color = "#F7FBFC",
     row.striping.include_stub     = FALSE
-  ) |> 
+  ) |>
     opt_row_striping()
 }
