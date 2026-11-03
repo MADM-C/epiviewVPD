@@ -176,7 +176,7 @@ if (!is.null(school_id)) {
     is_childcare = is_childcare,
     school_id = childcare_id,
     facility_data = childcare_data,
-    county_data = county_map_data,
+    county_data = county_data
   )
   
   summary_data <- tibble::tribble(
@@ -184,7 +184,7 @@ if (!is.null(school_id)) {
   "Total Enrollment", ifelse(is.na(metrics$total), "N/A", as.character(metrics$total)),
   "Total Eligible", ifelse(is.na(metrics$total_elig), "N/A", as.character(metrics$total_elig)),
   "Child Care MMR Coverage", format_vax_pct(metrics$overall_cov),
-  paste0(metrics$county_name_school, " County MMR Coverage"), format_vax_pct(metrics$county_vax))
+  paste0(metrics$county_name_daycare, " County MMR Coverage"), format_vax_pct(metrics$county_vax))
   
   summary_data |> 
     gt() |> 
