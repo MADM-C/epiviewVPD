@@ -47,12 +47,12 @@ add_point_layers <- function(map, point_type, school_data = NULL, childcare_data
         color = "black",
         fillColor = ~ get_fill_color(full_vax_pct),
         fillOpacity = 0.9,
-        layerId = ~mde_school_id,
+        layerId = ~school_id,
         group = if (is_combined) "Schools" else NULL,
         popup = ~ paste0(
-          "<b>", school_name, "</b><br>", COUNTYNAME, " County<br>",
-          if (is_combined) "Type: School<br>" else paste0("School Type: ", sch_type, "<br>"),
-          "Grades: ", GRADERANGE, "<br>",
+          "<b>", school_name, "</b><br>", county_name, " County<br>",
+          if (is_combined) "Type: School<br>" else paste0("School Type: ", school_type, "<br>"),
+          "Grades: ", grade_range, "<br>",
           "MMR Coverage: ", paste0(if_else(school_data$full_vax_pct == 0 & school_data$partial_vax_pct == 0, "Data unavailable",
                                            format_vax_pct(school_data$full_vax_pct))),
           ifelse(
@@ -65,7 +65,7 @@ add_point_layers <- function(map, point_type, school_data = NULL, childcare_data
           school_name,
           if (is_combined) " (School)" else "",
           ": ", paste0(if_else(school_data$full_vax_pct == 0 & school_data$partial_vax_pct == 0, "Data unavailable",
-                                           format_vax_pct(school_data$full_vax_pct)))
+                               format_vax_pct(school_data$full_vax_pct)))
         ),
         labelOptions = labelOptions(direction = "top", textsize = "13px", opacity = 0.85)
       )
@@ -84,17 +84,17 @@ add_point_layers <- function(map, point_type, school_data = NULL, childcare_data
         color = "black",
         fillColor = ~ get_fill_color(full_vax_pct),
         fillOpacity = 0.9,
-        layerId = ~idsch,
+        layerId = ~facility_id,
         group = if (is_combined) "Child Cares" else NULL,
         popup = ~ paste0(
-          daycare_name, "<br>", COUNTYNAME, " County<br>",
+          facility_name, "<br>", county_name, " County<br>",
           if (is_combined) "Type: Daycare<br>" else "",
-          "Eligible: ", enroll_mmreligible, "<br>",
+          "Eligible: ", enroll_eligible, "<br>",
           "Vaccinated", if (!is_combined) " (1 dose)" else "", ": ", full_vax, "<br>",
           "Coverage: ", format_vax_pct(full_vax_pct)
         ),
         label = ~ paste0(
-          daycare_name,
+          facility_name,
           if (is_combined) " (Daycare)" else "",
           ": ", format_vax_pct(full_vax_pct)
         ),
@@ -116,7 +116,7 @@ county_district_overlay <- function(map, county_districts = NULL) {
       weight = 1.5,
       opacity = 0.8,
       group = "School Districts",
-      label = ~PREFNAME,
+      label = ~district_name,
       labelOptions = labelOptions(direction = "auto", textsize = "12px", opacity = 0.85)
     )
 }
@@ -197,8 +197,8 @@ submap_title_vax <- function(boundary_type,
 
   if (is_district_mode) {
     boundary_rate <- district_data |>
-      dplyr::filter(join_key == selected_district) |>
-      dplyr::pull(mmr_vax_pert) |> # TODO(#16): Minnesota column name
+      dplyr::filter(district_id == selected_district) |>
+      dplyr::pull(full_vax_pct) |>
       dplyr::first()
   } else {
     boundary_rate <- county_data |>

@@ -32,15 +32,15 @@
 #   selected facility. This value is updated by the submap module
 #   when users click a facility marker or select a location.
 #
-# school_demo_joined
+# schools
 #   School-level dataset containing enrollment totals and overall
 #   vaccination coverage.
 #
-# daycare_joined
+# facilities
 #   Dataset containing child care vaccination information used
 #   primarily for the location selector.
 #
-# mmr_grade
+# grades
 #   Dataset containing grade-level vaccination coverage for
 #   individual schools.
 #
@@ -84,7 +84,7 @@
 #        ↓
 # selected_school_id updated
 #        ↓
-# grade-level data pulled from mmr_grade
+# grade-level data pulled from grades
 #        ↓
 # table + bar chart rendered
 #        ↓
@@ -94,42 +94,42 @@
 
 gradeDetailsServer <- function(input, output, session,
                                selected_school_id,
-                               school_demo_joined,
-                               daycare_joined,
-                               mmr_grade,
+                               schools,
+                               facilities,
+                               grades,
                                format_vax_pct,
-                               county_map_data,
-                               district_map_data = NULL) {
+                               counties,
+                               districts = NULL) {
 
   # === Table of Grade-Level MMR for Selected School ====
   output$grade_table <- render_gt({
     school_id <- resolve_school_id(selected_school_id,
                                    input$selected_location,
-                                   school_data = school_demo_joined)
+                                   school_data = schools)
 
     req(school_id)
     # Grade-level data is only available for schools (not child cares)
-    req(school_id %in% school_demo_joined$mde_school_id)
+    req(school_id %in% schools$school_id)
 
-    if (is_nonresponder(school_id, school_data = school_demo_joined)) {
+    if (is_nonresponder(school_id, school_data = schools)) {
       NULL
     } else {
-      grade_level_table(school_id, grade_data = mmr_grade)
+      grade_level_table(school_id, grade_data = grades)
     }
   })
 
   # === Grade-Level Bar Chart (NA-safe) ===
   output$grade_plot <- renderPlot({
-    school_id <- resolve_school_id(selected_school_id, input$selected_location, school_data = school_demo_joined)
+    school_id <- resolve_school_id(selected_school_id, input$selected_location, school_data = schools)
 
     req(school_id)
     # Grade-level data is only available for schools (not child cares)
-    req(school_id %in% school_demo_joined$mde_school_id)
+    req(school_id %in% schools$school_id)
 
-    if (is_nonresponder(school_id, school_data = school_demo_joined)) {
+    if (is_nonresponder(school_id, school_data = schools)) {
       NULL
     } else {
-      grade_level_plot(school_id, grade_data = mmr_grade)
+      grade_level_plot(school_id, grade_data = grades)
     }
   })
 
@@ -137,22 +137,22 @@ gradeDetailsServer <- function(input, output, session,
 
   output$grade_output <- renderUI({
     school_id <- resolve_school_id(selected_school_id, input$selected_location,
-                                   school_data = school_demo_joined)
+                                   school_data = schools)
 
     req(school_id)
 
-    is_school <- school_id %in% school_demo_joined$mde_school_id
-    is_childcare <- school_id %in% daycare_joined$idsch
+    is_school <- school_id %in% schools$school_id
+    is_childcare <- school_id %in% facilities$facility_id
 
     if (is_school) {
       metrics <- get_facility_metrics(
         is_school = is_school,
         is_childcare = is_childcare,
         school_id = school_id,
-        facility_data = school_demo_joined,
-        county_data = county_map_data,
-        district_data = district_map_data,
-        grade_data = mmr_grade
+        facility_data = schools,
+        county_data = counties,
+        district_data = districts,
+        grade_data = grades
       )
 
       render_school_overview(
@@ -178,13 +178,13 @@ gradeDetailsServer <- function(input, output, session,
         is_school = is_school,
         is_childcare = is_childcare,
         school_id = school_id,
-        facility_data = daycare_joined,
-        county_data = county_map_data,
+        facility_data = facilities,
+        county_data = counties,
       )
 
       render_childcare_overview(
         school_id = school_id,
-        facility_data = daycare_joined,
+        facility_data = facilities,
         overall_cov = metrics$overall_cov,
         total = metrics$total,
         total_elig = metrics$total_elig,
@@ -203,10 +203,10 @@ gradeDetailsServer <- function(input, output, session,
       point_type = input$point_type,
       selected_district = input$selected_district,
       selected_county = input$selected_county,
-      district_data = district_map_data,
-      county_data = county_map_data,
-      school_data = school_demo_joined,
-      childcare_data = daycare_joined
+      district_data = districts,
+      county_data = counties,
+      school_data = schools,
+      childcare_data = facilities
     )
     selectizeInput(
       inputId = "selected_location",
@@ -237,16 +237,16 @@ gradeDetailsServer <- function(input, output, session,
       # Set up parameters to pass to the Rmd
       params <- list(
         boundary = input$boundary_type,
-        school_data = school_demo_joined,
-        childcare_data = daycare_joined,
+        school_data = schools,
+        childcare_data = facilities,
         selected_district = input$selected_district,
         selected_county = input$selected_county,
         point_type = input$point_type,
         selected_location = input$selected_location,
         selected_school_id = selected_school_id(),
-        district_data = district_map_data,
-        county_data = county_map_data,
-        grade_data = mmr_grade
+        district_data = districts,
+        county_data = counties,
+        grade_data = grades
       )
 
       # Render the report

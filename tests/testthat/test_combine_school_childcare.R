@@ -13,7 +13,7 @@ test_that("drops rows with missing or empty names", {
   schools <- make_schools()
   schools$school_name <- c(NA, "Roosevelt High")
   daycares <- make_daycares()
-  daycares$daycare_name <- c("", "Sunshine Kids")
+  daycares$facility_name <- c("", "Sunshine Kids")
   out <- combineSchoolDaycareData(schools, daycares)
   expect_equal(out$facility_name, c("Roosevelt High", "Sunshine Kids"))
 })

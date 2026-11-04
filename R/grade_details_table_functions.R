@@ -5,7 +5,7 @@
 grade_level_table <- function(grade_data = NULL, school_id) {
 
   table_data <- grade_data |>
-    dplyr::filter(mde_school_id == school_id) |> # TODO(#16): Minnesota column name
+    dplyr::filter(school_id == .env$school_id) |>
     dplyr::select(grade, full_vax_pct, partial_vax_pct, medical_pct, nonmedical_pct) |>
     mutate(
       grade = ifelse(grade == 0, "K", as.character(grade)),

@@ -2,9 +2,11 @@
 # TODO(#20): parts of this file are specific to measles (labels,
 # object names); TODO(#14): case age groups are hard-coded
 
-build_case_table <- function(measles_cases) {
-  measles_cases %>%
-    mutate(county = str_to_title(county)) %>%
+# Input:  cases from the standard app data
+# Output: display table with a `county` column
+build_case_table <- function(cases) {
+  cases %>%
+    rename(county = county_name) %>%
     arrange(county, year, age_group)
 }
 

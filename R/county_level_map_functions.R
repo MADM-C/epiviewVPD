@@ -20,42 +20,34 @@ county_palette <- function(domain) {
 
 # ==== Create main County/District map on dashboard tab ====
 
-county_district_map_dashboard <- function(map_data, pal_county) {
+# Polygon layer ids on the county map: lower-case county names for
+# counties, district_id for districts. countyMapServer() turns a clicked
+# id back into a county name or district.
+map_layer_ids <- function(map_data, boundary) {
+  if (boundary == "county") tolower(map_data$county_name) else map_data$district_id
+}
 
-  # pull name of data set to determine if county or district
-  map_data_name <- deparse(substitute(map_data))
-
-  # assign the boundary view
-  if (str_detect(map_data_name, regex("county", ignore_case = TRUE))) {
-    boundary_view <- "County"
-  } else {
-    boundary_view <- "District"
-  }
+# Input:  map_data = counties or districts from the standard app data
+#         (load_app_data.R); boundary = "county" or "district"
+# Output: leaflet map shaded by coverage
+# Used by countyMapServer() and inst/reports/dashboard_report.Rmd.
+county_district_map_dashboard <- function(map_data, pal_county, boundary = c("county", "district")) {
+  boundary <- match.arg(boundary)
+  boundary_view <- if (boundary == "county") "County" else "District"
 
   # ----------- Layer ID, name, enrollment, and coverage for the selected boundary -------------
-  # TODO(#16): Minnesota-specific keys. Counties are matched on county_lower and
-  # districts on join_key; the CSV loader will match counties by FIPS code.
 
-  if (boundary_view == "County"){
-
-    map_data$layer_id <- map_data$county_lower
-    map_data$name <- map_data$county_name
-    map_data$enrollment <- map_data$total_enrollment
-    map_data$full_vax_pct <- map_data$full_vax_pct
-
-  } else {
-
-    map_data$layer_id <- map_data$join_key
-    map_data$name <- map_data$PREFNAME
-    map_data$enrollment <- map_data$enroll
-    map_data$full_vax_pct <- map_data$full_vax_pct_num
-
-  }
+  map_data$layer_id <- map_layer_ids(map_data, boundary)
+  map_data$name <- if (boundary == "county") map_data$county_name else map_data$district_name
+  map_data$enrollment <- map_data$enroll
+  # Coverage as a number (suppressed values like ">95" counted past their
+  # number, see load_app_data()), for the colors and the label
+  map_data$full_vax_pct <- map_data$full_vax_pct_num
   # ------------------------------------------------------------------------------------------
 
   # Check for demographic columns - can use this for step-down version of map
-  has_soc <- "students_of_color" %in% colnames(map_data)
-  has_frl <- "frl_eligible" %in% colnames(map_data)
+  has_soc <- "students_of_color_pct" %in% colnames(map_data)
+  has_frl <- "frl_eligible_pct" %in% colnames(map_data)
 
   # Pre-construct HTML labels row-by-row before passing to leaflet
   map_data$map_label <- lapply(1:nrow(map_data), function(i) {
@@ -82,24 +74,14 @@ county_district_map_dashboard <- function(map_data, pal_county) {
       "Enrollment (K–12): ", enroll_txt
     )
 
-    # Append Students of Color if present
+    # Demographics are given as percentages (of the enrollment they were
+    # counted against), so they're shown as they are
+    pct_txt <- function(x) if (is.na(x)) "Data Not Available" else paste0(round(x, 1), "%")
     if (has_soc) {
-      soc_txt <- if (is.na(row$students_of_color) || is.na(row$enrollment) || row$enrollment == 0) {
-        "Data Not Available"
-      } else {
-        paste0(scales::comma(row$students_of_color), " (", round(100 * row$students_of_color / row$enrollment, 1), "%)")
-      }
-      label_str <- paste0(label_str, "<br>Students of Color (K–12): ", soc_txt)
+      label_str <- paste0(label_str, "<br>Students of Color (K–12): ", pct_txt(row$students_of_color_pct))
     }
-
-    # Append Free/Reduced Lunch if present
     if (has_frl) {
-      frl_txt <- if (is.na(row$frl_eligible) || is.na(row$enrollment) || row$enrollment == 0) {
-        "Data Not Available"
-      } else {
-        paste0(scales::comma(row$frl_eligible), " (", round(100 * row$frl_eligible / row$enrollment, 1), "%)")
-      }
-      label_str <- paste0(label_str, "<br>Free/Reduced Lunch Eligible (K–12): ", frl_txt)
+      label_str <- paste0(label_str, "<br>Free/Reduced Lunch Eligible (K–12): ", pct_txt(row$frl_eligible_pct))
     }
 
     htmltools::HTML(label_str)
@@ -130,30 +112,11 @@ county_district_map_dashboard <- function(map_data, pal_county) {
 
 # ==== Highlight selected county or district in orange ====
 
-highlight_selected <- function(map_data, selected_lower) {
-
-  # pull name of data set to determine if county or district
-  map_data_name <- deparse(substitute(map_data))
-
-  # assign the boundary view
-  if (str_detect(map_data_name, regex("county", ignore_case = TRUE))) {
-    boundary_view <- "County"
-  } else {
-    boundary_view <- "District"
-  }
-
-  # ----------- Layer ID for the selected boundary -------------
-  # TODO(#16): Minnesota-specific keys (county_lower, join_key)
-
-  if (boundary_view == "County") {
-    map_data$layer_id <- map_data$county_lower
-  } else {
-    map_data$layer_id <- map_data$join_key
-  }
-  # -----------------------------------------------------------------------------------------
-
-  selected_shape <- map_data |>
-    dplyr::filter(layer_id == selected_lower)
+# Input:  map_data and boundary as for county_district_map_dashboard();
+#         selected_id = a layer id from map_layer_ids()
+highlight_selected <- function(map_data, selected_id, boundary = c("county", "district")) {
+  boundary <- match.arg(boundary)
+  selected_shape <- map_data[map_layer_ids(map_data, boundary) %in% selected_id, ]
 
   leafletProxy("county_map") %>%
     clearGroup("highlight") %>%
@@ -166,4 +129,3 @@ highlight_selected <- function(map_data, selected_lower) {
       group = "highlight"
     )
 }
-

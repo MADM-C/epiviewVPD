@@ -42,10 +42,10 @@ extract_facility_choices <- function(school_data = NULL, childcare_data = NULL, 
   # Clean sf geometry if present
   if (inherits(school_data, "sf")) {
     school_data <- sf::st_drop_geometry(school_data)
-    }
+  }
   if (inherits(childcare_data, "sf")) {
     childcare_data <- sf::st_drop_geometry(childcare_data)
-    }
+  }
 
   if (isTRUE(point_type == "Schools")) {
 
@@ -57,16 +57,16 @@ extract_facility_choices <- function(school_data = NULL, childcare_data = NULL, 
   } else if (isTRUE(point_type == "Child Cares")) {
 
     df <- childcare_data %>%
-      dplyr::filter(!is.na(idsch), !is.na(daycare_name))
+      dplyr::filter(!is.na(facility_id), !is.na(facility_name))
 
-    lc <- stats::setNames(as.character(df$idsch), df$daycare_name) # TODO(#16): Minnesota column name
+    lc <- stats::setNames(as.character(df$facility_id), df$facility_name)
     lc[order(names(lc))]
 
   } else {
     # "All" or unselected mode
     c(
       dplyr::pull(school_data, school_name),
-      dplyr::pull(childcare_data, daycare_name)
+      dplyr::pull(childcare_data, facility_name)
     ) %>%
       unique() %>%
       sort()
