@@ -89,7 +89,7 @@ selected_school_id <- params$selected_school_id
 
 # Determine if selected_location is a school or child care
 
-if (selected_school_id %in% school_data$mde_school_id && !selected_school_id %in% childcare_data$idsch) {
+if (selected_school_id %in% school_data$school_id && !selected_school_id %in% childcare_data$facility_id) {
   school_id <- selected_school_id
   childcare_id <- NULL
 } else {
@@ -99,7 +99,7 @@ if (selected_school_id %in% school_data$mde_school_id && !selected_school_id %in
 
 ```
 
-### `r if (!is.null(school_id) && is.null(childcare_id)) {(subset(school_data, mde_school_id == school_id, select = school_name) %>% sf::st_drop_geometry() )} else {(subset(childcare_data, idsch == childcare_id, select = daycare_name) %>% sf::st_drop_geometry() )}`
+### `r if (!is.null(school_id) && is.null(childcare_id)) {(school_data[which(school_data$school_id == school_id), "school_name"] %>% sf::st_drop_geometry() )} else {(subset(childcare_data, facility_id == childcare_id, select = facility_name) %>% sf::st_drop_geometry() )}`
 
 <!-- ================= ROW 1 ================= -->
 <div class="side-by-side-container">
@@ -108,8 +108,8 @@ if (selected_school_id %in% school_data$mde_school_id && !selected_school_id %in
 ```{r}
 # === Grade Level/Child Care Details ===
 
-is_school <- school_id %in% school_data$mde_school_id
-is_childcare <- childcare_id %in% childcare_data$idsch
+is_school <- school_id %in% school_data$school_id
+is_childcare <- childcare_id %in% childcare_data$facility_id
 
 if (!is.null(school_id)) {
   metrics <- get_facility_metrics(
@@ -242,9 +242,9 @@ cat('<style> .leaflet-container { background: #FFF; } </style>')
 # bring in statewide plot
 is_district_mode <- !is.null(boundary) && boundary %in% c("district")
 if (is_district_mode && !is.null(district_data)) {
-      county_district_map_dashboard(district_data, county_palette(county_data$full_vax_pct))
+      county_district_map_dashboard(district_data, county_palette(county_data$full_vax_pct_num), "district")
   } else {
-    county_district_map_dashboard(county_data, county_palette(county_data$full_vax_pct))
+    county_district_map_dashboard(county_data, county_palette(county_data$full_vax_pct_num), "county")
   }
 
 ```

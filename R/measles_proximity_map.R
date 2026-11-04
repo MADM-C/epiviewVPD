@@ -2,23 +2,24 @@
 # This function handles the interactive map, combining school and daycare facilities,
 # overlaying religious centers, and analyzing nearby low-vaccine facilities.
 # Parameters:
-#   school_data: reactive expression returning school data
-#   daycare_data: reactive expression returning daycare data
-#   county_map_data: reactive expression returning county boundary data
+#   schools, facilities, counties, healthcare_center_data: reactive
+#     expressions returning schools, child cares, counties and healthcare
+#     centers from the standard app data (load_app_data.R)
+#   districts: districts from the standard app data (or NULL)
 #   output: Shiny output object
 #   input: Shiny input object
 #   session: Shiny session object
 # Returns: list of reactive values and functions for use by other modules
 # Depends on analyze_proximity.R and map_markers.R being sourced
-proximityMapServer <- function(school_data, daycare_data, county_map_data,
-                               healthcare_center_data, school_district_data = NULL,
+proximityMapServer <- function(schools, facilities, counties,
+                               healthcare_center_data, districts = NULL,
                                output, input, session) {
   # Reactive expression to combine and clean facility data
   # Automatically updates when underlying school or daycare data changes
   combined_facilities <- reactive({
     tryCatch(
       {
-        df <- combineSchoolDaycareData(school_data(), daycare_data())
+        df <- combineSchoolDaycareData(schools(), facilities())
         if (!is.null(df) && nrow(df) > 0 && "geometry" %in% names(df)) {
           coords <- sf::st_coordinates(df$geometry)
           valid <- !is.na(coords[, 1]) & !is.na(coords[, 2])
@@ -32,7 +33,7 @@ proximityMapServer <- function(school_data, daycare_data, county_map_data,
       }
     )
   })
-  
+
   # Reactive expression for healthcare centers (reference layer only, not included in analysis)
   healthcare_centers <- reactive({
     req(healthcare_center_data())
@@ -40,26 +41,26 @@ proximityMapServer <- function(school_data, daycare_data, county_map_data,
       dplyr::rename(healthcare_name = name) %>%
       dplyr::select(dplyr::any_of(c("healthcare_name", "geometry")))
   })
-  
+
   # Reactive values to store user interactions and analysis results
   values <- reactiveValues(
     clicked_point = NULL, # Stores last clicked map coordinates
     low_vaccine_facilities_data = NULL # Stores facilities below vaccine threshold
   )
-  
+
   # Convert search radius from miles to kilometers
   # Required because distance calculations use metric system
   radius_km <- reactive({
     req(input$radius_miles)
     input$radius_miles * 1.60934
   })
-  
+
   # Get user-selected vaccine threshold percentage
   low_vaccine_threshold <- reactive({
     req(input$vaccine_threshold)
     input$vaccine_threshold
   })
-  
+
   # Update facility dropdown when data changes
   # Only schools and daycares are included in the dropdown (religious/tutoring/healthcare centers excluded)
   observe({
@@ -67,20 +68,20 @@ proximityMapServer <- function(school_data, daycare_data, county_map_data,
     if (!is.null(facilities) && nrow(facilities) > 0) {
       # Clean names
       display_names <- trimws(facilities$facility_name)
-      
+
       # Build choices (IDs = row numbers, labels = names)
       choices <- setNames(seq_len(nrow(facilities)), display_names)
-      
+
       # Remove bad labels
       bad <- is.na(names(choices)) |
         names(choices) == "" |
         toupper(names(choices)) %in% c("NA", "NULL") |
         grepl("^na\\s*-\\s*na$", names(choices), ignore.case = TRUE)
       choices <- choices[!bad]
-      
+
       # Sort alphabetically
       choices <- choices[order(tolower(names(choices)))]
-      
+
       updateSelectizeInput(session, "selected_facility",
                            choices = choices,
                            selected = "",
@@ -92,7 +93,7 @@ proximityMapServer <- function(school_data, daycare_data, county_map_data,
       )
     }
   })
-  
+
   # Handle facility selection from dropdown
   observeEvent(input$selected_facility, {
     if (input$selected_facility != "") {
@@ -114,15 +115,15 @@ proximityMapServer <- function(school_data, daycare_data, county_map_data,
       }
     }
   })
-  
+
   # Allow User to imput a specific address
   observeEvent(input$search_address_btn, {
     req(input$address_input) # Ensure input is not empty
-    
+
     # Create a progress notification while geocoding
     id <- showNotification("Searching address...", duration = NULL, closeButton = FALSE)
     on.exit(removeNotification(id), add = TRUE)
-    
+
     # Geocode the address using OpenStreetMap (OSM)
     tryCatch(
       {
@@ -131,13 +132,13 @@ proximityMapServer <- function(school_data, daycare_data, county_map_data,
           method = "osm",
           full_results = FALSE
         )
-        
+
         # Check if valid coordinates
         if (!is.null(geo_result) && nrow(geo_result) > 0 && !is.na(geo_result$lat) && !is.na(geo_result$long)) {
           # Extract coordinates
           search_lat <- geo_result$lat
           search_lng <- geo_result$long
-          
+
           # Call existing analysis function
           analyze_proximity(
             lat = search_lat,
@@ -159,39 +160,39 @@ proximityMapServer <- function(school_data, daycare_data, county_map_data,
       }
     )
   })
-  
+
   # Render the main leaflet map
   output$proximity_map <- renderLeaflet({
     facilities <- combined_facilities()
-    county_data <- county_map_data()
+    county_data <- counties()
     healthcare <- healthcare_centers()
-    
+
     map <- leaflet(options = leafletOptions(minZoom = 5, maxZoom = 20)) %>%
       setView(lng = -94.5, lat = 46.5, zoom = 6) %>%
       addProviderTiles("Esri.WorldTopoMap")
-    
+
     if (!is.null(county_data)) map <- map %>% addPolygons(data = county_data, color = "black", weight = 1)
-    
+
     map <- map %>% add_facility_markers(facilities)
-    
+
     # Add healthcare centers as a separate layer (green) with only name tooltip
     map <- map %>% add_healthcare_markers(healthcare)
-    
+
     # Add school district boundaries
-    if (!is.null(school_district_data)) {
+    if (!is.null(districts)) {
       map <- map %>%
         addPolygons(
-          data = school_district_data,
+          data = districts,
           fill = FALSE,
           color = "#2c7bb6",
           weight = 1.5,
           opacity = 0.8,
           group = "School Districts",
-          label = ~PREFNAME,
+          label = ~district_name,
           labelOptions = labelOptions(direction = "auto", textsize = "12px", opacity = 0.85)
         )
     }
-    
+
     map <- map %>%
       addLayersControl(
         overlayGroups = c("School/Child Care Markers", "Healthcare Centers", "School Districts"),
@@ -199,10 +200,10 @@ proximityMapServer <- function(school_data, daycare_data, county_map_data,
       ) %>%
       hideGroup("Healthcare Centers") %>%
       hideGroup("School Districts")
-    
+
     return(map)
   })
-  
+
   # Handle map click events for manual point selection
   observeEvent(input$proximity_map_click, {
     click <- input$proximity_map_click
@@ -218,7 +219,7 @@ proximityMapServer <- function(school_data, daycare_data, county_map_data,
       session = session
     )
   })
-  
+
   # Re-run analysis when search parameters change
   observeEvent(list(input$radius_miles, input$vaccine_threshold), {
     if (!is.null(values$clicked_point)) {
@@ -235,7 +236,7 @@ proximityMapServer <- function(school_data, daycare_data, county_map_data,
       )
     }
   })
-  
+
   # Return reactive values and functions for use by other modules
   return(list(
     clicked_point = reactive(values$clicked_point),

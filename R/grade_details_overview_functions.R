@@ -16,33 +16,32 @@ get_facility_metrics <- function(is_school, is_childcare,
 
     # --- basic vaccination coverage information needed for dashboard ---
 
-    # school enrollment (MDE = total_enrollment; MDH = enroll)
+    # school enrollment (from the same report as the coverage)
 
     total_enrollment <- facility_data |>
-      filter(mde_school_id == school_id) |>
-      mutate(eff_enrollment = coalesce(total_enrollment, enroll)) |>
-      pull(eff_enrollment) |>
+      filter(school_id == .env$school_id) |>
+      pull(enroll) |>
       _[1]
 
     # school overall coverage
 
     overall_cov <- facility_data |>
-      filter(mde_school_id == school_id) |>
+      filter(school_id == .env$school_id) |>
       pull(full_vax_pct) |>
       _[1]
 
     # identify school type (private/public/charter)
 
     school_type <- facility_data |>
-      filter(mde_school_id == school_id) |>
-      pull(sch_type) |>
+      filter(school_id == .env$school_id) |>
+      pull(school_type) |>
       _[1]
 
     # pull county name/ID
 
     county_name_school <- facility_data |>
-      dplyr::filter(mde_school_id == school_id) |>
-      pull(COUNTYNAME) |>
+      dplyr::filter(school_id == .env$school_id) |>
+      pull(county_name) |>
       _[1]
 
     # pull county vaccination coverage
@@ -62,11 +61,11 @@ get_facility_metrics <- function(is_school, is_childcare,
     if (has_gradelevel) {
       # identify how many grades are in the school
       grade_rows <- grade_data |>
-        filter(mde_school_id == school_id)
+        filter(school_id == .env$school_id)
       # check if all grade-level data is redacted
       all_grades_redacted <-
         nrow(grade_rows) > 0 &&
-          all(is.na(grade_rows$full_vax_pct))
+        all(is.na(grade_rows$full_vax_pct))
     } else {
       grade_rows <- NULL
       all_grades_redacted <- NULL
@@ -75,7 +74,7 @@ get_facility_metrics <- function(is_school, is_childcare,
     # school partial vaccination coverage
     if (has_partial) {
       partial_vax <- facility_data |>
-        filter(mde_school_id == school_id) |>
+        filter(school_id == .env$school_id) |>
         pull(partial_vax_pct) |>
         _[1]
     } else {
@@ -86,12 +85,12 @@ get_facility_metrics <- function(is_school, is_childcare,
     if (has_exemptions) {
       # medical exemption
       med_exempt <- facility_data |>
-        filter(mde_school_id == school_id) |>
+        filter(school_id == .env$school_id) |>
         pull(medical_pct) |>
         _[1]
       # non medical exemption
       nonmed_exempt <- facility_data |>
-        filter(mde_school_id == school_id) |>
+        filter(school_id == .env$school_id) |>
         pull(nonmedical_pct) |>
         _[1]
     } else {
@@ -101,19 +100,19 @@ get_facility_metrics <- function(is_school, is_childcare,
 
     # district-level data ---
     has_anydistrict <- !is.null(district_data)
-    has_languages <- "languages_display" %in% colnames(facility_data) # add this to district data instead of school/facility data?
+    has_languages <- "home_languages" %in% colnames(facility_data) # add this to district data instead of school/facility data?
     has_districtvax <- "full_vax_pct_num" %in% colnames(district_data)
 
     # pull district name/ID
     if (has_anydistrict) {
       district_key <- facility_data |>
-        dplyr::filter(mde_school_id == school_id) |>
-        pull(mde_district_key) |>
+        dplyr::filter(school_id == .env$school_id) |>
+        pull(district_id) |>
         _[1]
 
       district_name <- district_data |>
-        dplyr::filter(join_key == district_key) |>
-        pull(PREFNAME) |>
+        dplyr::filter(district_id == district_key) |>
+        pull(district_name) |>
         _[1]
     } else {
       district_name <- NULL
@@ -122,8 +121,8 @@ get_facility_metrics <- function(is_school, is_childcare,
     # most common languages spoken across the district
     if (has_languages) {
       languages <- facility_data |>
-        filter(mde_school_id == school_id) |>
-        pull(languages_display) |>
+        filter(school_id == .env$school_id) |>
+        pull(home_languages) |>
         _[1]
     } else {
       languages <- NULL
@@ -132,7 +131,7 @@ get_facility_metrics <- function(is_school, is_childcare,
     # pull district vaccination coverage
     if (has_districtvax) {
       district_vax <- district_data |>
-        dplyr::filter(join_key == district_key) |>
+        dplyr::filter(district_id == district_key) |>
         pull(full_vax_pct_num) |>
         _[1]
     } else {
@@ -159,20 +158,20 @@ get_facility_metrics <- function(is_school, is_childcare,
     )
   } else if (is_childcare) {
     overall_cov <- facility_data |>
-      filter(idsch == school_id) |>
+      filter(facility_id == school_id) |>
       pull(full_vax_pct) |>
       _[1]
     total <- facility_data |>
-      filter(idsch == school_id) |>
-      pull(total_enroll) |>
+      filter(facility_id == school_id) |>
+      pull(enroll) |>
       _[1]
     total_elig <- facility_data |>
-      filter(idsch == school_id) |>
-      pull(enroll_mmreligible) |>
+      filter(facility_id == school_id) |>
+      pull(enroll_eligible) |>
       _[1]
     county_name_daycare <- facility_data |>
-      filter(idsch == school_id) |>
-      pull(COUNTYNAME) |>
+      filter(facility_id == school_id) |>
+      pull(county_name) |>
       _[1]
     county_vax <- county_data |>
       dplyr::filter(county_name == county_name_daycare) |>
@@ -195,22 +194,22 @@ get_facility_metrics <- function(is_school, is_childcare,
 # ===========================================================
 
 render_school_overview <- function(
-  school_id,
-  selected_location,
-  school_type,
-  total_enrollment,
-  languages,
-  district_name,
-  district_vax,
-  county_name_school,
-  county_vax,
-  overall_cov,
-  grade_rows,
-  all_grades_redacted,
-  nonresponder_status,
-  med_exempt,
-  nonmed_exempt,
-  partial_vax
+    school_id,
+    selected_location,
+    school_type,
+    total_enrollment,
+    languages,
+    district_name,
+    district_vax,
+    county_name_school,
+    county_vax,
+    overall_cov,
+    grade_rows,
+    all_grades_redacted,
+    nonresponder_status,
+    med_exempt,
+    nonmed_exempt,
+    partial_vax
 ) {
   # base level overview with only school-wide and county-wide data
   tagList(
@@ -219,8 +218,8 @@ render_school_overview <- function(
     tags$p(tags$strong("School Type: "), school_type, class = "grade-details-details"),
     tags$p(tags$strong("Total Enrollment*: "), ifelse(is.na(total_enrollment), "N/A", total_enrollment), class = "grade-details-details"),
     tags$p(tags$strong("Schoolwide MMR Coverage: "),
-      ifelse(isTRUE(nonresponder_status), "Data Unavailable", format_vax_pct(overall_cov)),
-      class = "grade-details-details"
+           ifelse(isTRUE(nonresponder_status), "Data Unavailable", format_vax_pct(overall_cov)),
+           class = "grade-details-details"
     ),
     # additional vaccination data
     if (!is.null(partial_vax)) {
@@ -263,19 +262,19 @@ render_school_overview <- function(
     if (!is.na(overall_cov) && isTRUE(all_grades_redacted)) {
       tagList(
         tags$p("Grade-level vaccination data are redacted because fewer than 10 students were enrolled in each grade.",
-          tags$br(),
-          "The overall coverage reflects total reported students across all grades.",
-          tags$br(),
-          "*Enrollment counts may differ between MDH and MDE records.",
-          class = "grade-details-footnote"
+               tags$br(),
+               "The overall coverage reflects total reported students across all grades.",
+               tags$br(),
+               "*Enrollment counts may differ between MDH and MDE records.",
+               class = "grade-details-footnote"
         )
       )
     } else if (isTRUE(nonresponder_status)) {
       tagList(
         tags$p("MMR vaccination coverage is unavailable for schools that did not report data to MDH.",
-          tags$br(),
-          "*Enrollment counts may differ between MDH and MDE records.",
-          class = "grade-details-footnote"
+               tags$br(),
+               "*Enrollment counts may differ between MDH and MDE records.",
+               class = "grade-details-footnote"
         )
       )
     } else {
@@ -307,17 +306,17 @@ render_school_overview <- function(
 # ===========================================================
 
 render_childcare_overview <- function(
-  school_id,
-  facility_data = NULL,
-  overall_cov,
-  total,
-  total_elig,
-  county_name_daycare,
-  county_vax
+    school_id,
+    facility_data = NULL,
+    overall_cov,
+    total,
+    total_elig,
+    county_name_daycare,
+    county_vax
 ) {
   tagList(
     tags$h4("MMR Coverage in Child Cares", class = "grade-details-heading"),
-    tags$div(stringr::str_wrap(facility_data[facility_data$idsch == school_id, ]$daycare_name, width = 65), class = "grade-details-facility"),
+    tags$div(stringr::str_wrap(facility_data[facility_data$facility_id == school_id, ]$facility_name, width = 65), class = "grade-details-facility"),
     tags$p(tags$strong("Total Enrollment*:"), ifelse(is.na(total), "N/A", total), class = "grade-details-details"),
     tags$p(tags$strong("Total Eligible: "), ifelse(is.na(total_elig), "N/A", total_elig), class = "grade-details-details"),
     tags$p(tags$strong("Child Care MMR Coverage: "), format_vax_pct(overall_cov), class = "grade-details-details"),

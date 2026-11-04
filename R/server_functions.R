@@ -13,7 +13,7 @@ resolve_school_id <- function(school_id_reactive, selected_location, school_data
   if (is.null(school_id) && !is.null(selected_location)) {
     school_id <- school_data |>
       filter(school_name == selected_location) |>
-      pull(mde_school_id) |>
+      pull(school_id) |>
       _[1]
   }
   school_id
@@ -26,7 +26,7 @@ resolve_school_id <- function(school_id_reactive, selected_location, school_data
 is_nonresponder <- function(school_id, school_data = NULL) {
   school_data |>
     sf::st_drop_geometry() |>
-    dplyr::filter(mde_school_id == school_id) |> # TODO(#16): Minnesota column name
+    dplyr::filter(school_id == .env$school_id) |>
     dplyr::mutate(non_responder = ifelse((full_vax_pct == 0 & !is.na(full_vax_pct)) &
                                            (partial_vax_pct == 0 & !is.na(partial_vax_pct)), TRUE, FALSE)) |>
     pull(non_responder)
@@ -40,8 +40,8 @@ format_vax_pct <- function(x) {
     is.na(x),
     "NA",
     ifelse(grepl("^[<>]", x),
-      paste0(x, ifelse(grepl("%$", x), "", "%")), # if already has %, don't add
-      paste0(suppressWarnings(as.numeric(gsub("[^0-9.]", "", x))), "%")
+           paste0(x, ifelse(grepl("%$", x), "", "%")), # if already has %, don't add
+           paste0(suppressWarnings(as.numeric(gsub("[^0-9.]", "", x))), "%")
     ) # strips non-numeric
   )
 }
@@ -114,15 +114,15 @@ extract_facility_choices <- function(school_data = NULL, childcare_data = NULL, 
       sort()
   } else if (isTRUE(point_type == "Child Cares")) {
     df <- childcare_data |>
-      dplyr::filter(!is.na(idsch), !is.na(daycare_name))
+      dplyr::filter(!is.na(facility_id), !is.na(facility_name))
 
-    lc <- stats::setNames(as.character(df$idsch), df$daycare_name) # TODO(#16): Minnesota column name
+    lc <- stats::setNames(as.character(df$facility_id), df$facility_name)
     lc[order(names(lc))]
   } else {
     # "All" or unselected mode
     c(
       dplyr::pull(school_data, school_name),
-      dplyr::pull(childcare_data, daycare_name)
+      dplyr::pull(childcare_data, facility_name)
     ) |>
       unique() |>
       sort()
@@ -157,15 +157,15 @@ get_location_choices_data <- function(drop_sf,
 
     # Extract & validate shape
     district_shape <- district_data |>
-      dplyr::filter(join_key == selected_district)
+      dplyr::filter(district_id == selected_district)
     valid_shape <- tryCatch(sf::st_make_valid(district_shape), error = function(e) district_shape)
 
     # Filter spatial + ID matches
     spatial_schools <- filter_spatial_safe(school_data, valid_shape)
-    id_schools <- dplyr::filter(school_data, mde_district_key == selected_district) # TODO(#16): Minnesota column name
+    id_schools <- dplyr::filter(school_data, district_id == selected_district)
 
     schools_filtered <- dplyr::bind_rows(spatial_schools, id_schools) |>
-      dplyr::distinct(mde_school_id, .keep_all = TRUE)
+      dplyr::distinct(school_id, .keep_all = TRUE)
 
     childcares_filtered <- filter_spatial_safe(childcare_data, valid_shape)
 
@@ -175,13 +175,13 @@ get_location_choices_data <- function(drop_sf,
     req(selected_county, !is.null(county_data))
     county_lower_selected <- tolower(selected_county)
 
-    boundary_choice <- county_data |> dplyr::filter(county_lower == county_lower_selected)
+    boundary_choice <- county_data |> dplyr::filter(tolower(county_name) == county_lower_selected)
 
     schools_filtered <- school_data |>
-      dplyr::filter(tolower(COUNTYNAME) == county_lower_selected)
+      dplyr::filter(tolower(county_name) == county_lower_selected)
 
     childcares_filtered <- childcare_data |>
-      dplyr::filter(tolower(COUNTYNAME) == county_lower_selected)
+      dplyr::filter(tolower(county_name) == county_lower_selected)
   }
 
   if (isTRUE(drop_sf)) {

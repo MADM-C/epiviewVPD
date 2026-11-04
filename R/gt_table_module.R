@@ -33,20 +33,17 @@
 #
 # Data Inputs
 # -----------
-# school_demo_joined
-#   Spatial dataset containing school vaccination coverage and
-#   enrollment data. Geometry is removed before table construction.
+# schools, facilities, districts
+#   Standard schools, child cares and districts (load_app_data.R).
+#   Geometry is removed before table construction.
 #
-# daycare_joined
-#   Spatial dataset containing child care vaccination coverage and
-#   MMR-eligible enrollment counts.
-#
-# measles_cases
-#   Dataset containing historical measles cases by county, year,
+# cases
+#   Standard cases object (load_app_data.R): measles cases by county_name, year,
 #   and age group.
 #
-# mn_counties
-#   Used to generate the list of counties for the table dropdown.
+# counties
+#   Standard counties object; its county_name values are the table's
+#   county list.
 #
 # Reactive Inputs Used
 # --------------------
@@ -88,7 +85,7 @@
 #
 # ============================================================
 # Expects in parent env: input, output, session,
-#   school_demo_joined (sf), daycare_joined (sf), measles_cases (df)
+#   schools (sf), facilities (sf), cases (df)
 # District lookup, school and child care table builders, and coverage gt
 #   rendering live in functions/table_vaccine_functions.R.
 # Measles case table, case filtering, case gt table, and epicurve live in
@@ -96,30 +93,29 @@
 
 gtServer <- function(input, output, session,
                      selected_school_id,
-                     school_demo_joined,
-                     daycare_joined,
-                     mmr_grade,
+                     schools,
+                     facilities,
                      format_vax_pct,
-                     measles_cases,
-                     mn_counties,
-                     district_map_data = NULL) {
+                     cases,
+                     counties,
+                     districts = NULL) {
   # ---------- Build School Table (with demographics) ----------
 
-  district_data <- build_district_lookup(district_map_data)
+  district_data <- build_district_lookup(districts)
 
-  school_table_county <- build_school_table(school_demo_joined, "county")
-  school_table_district <- build_school_table(school_demo_joined, "district", district_data)
+  school_table_county <- build_school_table(schools, "county")
+  school_table_district <- build_school_table(schools, "district", district_data)
 
   # ---------- Build Daycare Table ----------
-  daycare_table <- build_daycare_table(daycare_joined)
+  daycare_table <- build_daycare_table(facilities)
 
   # ---------- Build Cases Table ----------
-  case_table <- build_case_table(measles_cases)
+  case_table <- build_case_table(cases)
 
   # ---------- Keep the county dropdown in sync with selected table ----------
 
   observeEvent(input$table_type, {
-    all_counties <- sort(unique(str_to_title(mn_counties$county_name)))
+    all_counties <- sort(unique(counties$county_name))
 
     current_selection <- input$gt_selected_county
 
@@ -156,7 +152,7 @@ gtServer <- function(input, output, session,
     req(input$table_type == "School Vaccine Coverage")
 
     if (input$gt_boundary_type == "district") {
-      all_districts <- sort(unique(district_data$PREFNAME))
+      all_districts <- sort(unique(district_data$district_name))
       current_selection <- input$gt_selected_district
 
       if (!is.null(current_selection) && current_selection %in% all_districts) {
@@ -172,7 +168,7 @@ gtServer <- function(input, output, session,
         selected = new_selected
       )
     } else if (input$gt_boundary_type == "county") {
-      all_counties <- sort(unique(str_to_title(mn_counties$county_name)))
+      all_counties <- sort(unique(counties$county_name))
 
       current_selection <- input$gt_selected_county
 
@@ -285,7 +281,6 @@ gtServer <- function(input, output, session,
         school_table_district = school_table_district,
         daycare_table = daycare_table,
         case_table = case_table,
-        measles_cases = measles_cases,
         table_type = input$table_type,
         boundary_type = input$gt_boundary_type,
         county = input$gt_selected_county,

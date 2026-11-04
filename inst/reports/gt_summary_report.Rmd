@@ -7,7 +7,6 @@ params:
   boundary_type: NULL
   daycare_table: NULL
   case_table: NULL
-  measles_cases: NULL
   table_type: NULL
   county: NULL
   district: NULL
@@ -58,13 +57,12 @@ filtered_data <- if (params$table_type == "Historical Measles Cases" && params$c
 # --- Recreate Epi Curve Plot ---
 
 if (params$table_type == "Historical Measles Cases") {
-  all_years <- sort(unique(params$measles_cases$year))
+  all_years <- sort(unique(params$case_table$year))
   min_year <- min(all_years, na.rm = TRUE)
   max_year <- max(all_years, na.rm = TRUE)
 
   county_years <- data.frame(year = seq(min_year, max_year, by = 1))
-  base_df <- params$measles_cases %>%
-    dplyr::mutate(county = stringr::str_to_title(county))
+  base_df <- params$case_table
 
   county_cases <- if (params$county == "Statewide") {
     base_df %>%
@@ -382,4 +380,3 @@ if (nrow(filtered_data) > 0 && params$table_type %in% c(
   table_gt
 }
 ```
-

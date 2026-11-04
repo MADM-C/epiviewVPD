@@ -4,11 +4,11 @@
 #   school_data: sf dataframe containing school information
 #   daycare_data: sf dataframe containing daycare information
 #   school_name_col: column name for school names (default: "school_name")
-#   daycare_name_col: column name for daycare names (default: "daycare_name")
+#   daycare_name_col: column name for daycare names (default: "facility_name")
 # Returns: combined sf dataframe with standardized columns
 combineSchoolDaycareData <- function(school_data, daycare_data,
                                      school_name_col = "school_name",
-                                     daycare_name_col = "daycare_name") {
+                                     daycare_name_col = "facility_name") {
   # Initialize empty dataframes for cleaned data
   schools_clean <- NULL
   daycares_clean <- NULL
@@ -21,7 +21,7 @@ combineSchoolDaycareData <- function(school_data, daycare_data,
       facility_type = "School",
       full_vax_pct = if ("full_vax_pct" %in% names(school_data)) school_data$full_vax_pct else "N/A",
       partial_vax_pct = if ("partial_vax_pct" %in% names(school_data)) school_data$partial_vax_pct else "N/A",
-      enrollment = if ("total_enrollment" %in% names(school_data)) school_data$total_enrollment else NA,
+      enrollment = if ("enroll" %in% names(school_data)) school_data$enroll else NA,
       contact_info = if ("contact_info" %in% names(school_data)) school_data$contact_info else "",
       stringsAsFactors = FALSE
     )
@@ -44,7 +44,7 @@ combineSchoolDaycareData <- function(school_data, daycare_data,
       facility_name = daycare_data[[daycare_name_col]],
       facility_type = "Daycare",
       full_vax_pct = if ("full_vax_pct" %in% names(daycare_data)) daycare_data$full_vax_pct else "N/A",
-      enrollment = if ("total_enroll" %in% names(daycare_data)) daycare_data$total_enroll else NA,
+      enrollment = if ("enroll" %in% names(daycare_data)) daycare_data$enroll else NA,
       stringsAsFactors = FALSE
     )
 

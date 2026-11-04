@@ -347,7 +347,7 @@ app_ui <- function(dashboard_config) {
                 )
               ),
 
-              # Color key explanation - shown for vaccine coverage tables (taken from varicella)
+              # Color key explanation - shown for vaccine coverage tables
               conditionalPanel(
                 condition = "input.table_type == 'School Vaccine Coverage' || input.table_type == 'Child Care Vaccine Coverage'",
                 tags$div(

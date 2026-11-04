@@ -25,16 +25,10 @@
 #
 # Data Inputs
 # -----------
-# school_demo_joined
-#   Spatial dataset containing school vaccination coverage, demographic
-#   attributes, and geometry.
-#
-# daycare_joined
-#   Spatial dataset containing child care vaccination coverage and geometry.
-#
-# county_map_data
-#   County boundary geometry used to draw the outline of the currently
-#   selected county.
+# schools, facilities, counties, districts
+#   Standard schools, child cares, counties and districts
+#   (load_app_data.R). County and district boundaries outline the
+#   selected area; districts are also drawn over the selected county.
 #
 # selected_school_id
 #   Reactive value shared across modules that stores the ID of the currently
@@ -80,9 +74,9 @@
 # ============================================================
 
 subMapServer <- function(input, output, session,
-                         school_demo_joined, daycare_joined,
-                         county_map_data, selected_school_id, format_vax_pct,
-                         school_district_data = NULL, district_map_data = NULL) {
+                         schools, facilities,
+                         counties, selected_school_id, format_vax_pct,
+                         districts = NULL) {
   # === Click school/daycare marker to update school ID and dropdown ===
   observeEvent(input$sub_map_marker_click, {
     clicked_raw <- input$sub_map_marker_click$id
@@ -93,22 +87,22 @@ subMapServer <- function(input, output, session,
 
     clicked_id <- as.character(clicked_raw)[1]
 
-    daycare_joined$idsch <- as.character(daycare_joined$idsch)
-    school_demo_joined$mde_school_id <- as.character(school_demo_joined$mde_school_id)
+    facilities$facility_id <- as.character(facilities$facility_id)
+    schools$school_id <- as.character(schools$school_id)
 
-    school_df <- sf::st_drop_geometry(school_demo_joined)
-    daycare_df <- sf::st_drop_geometry(daycare_joined)
+    school_df <- sf::st_drop_geometry(schools)
+    daycare_df <- sf::st_drop_geometry(facilities)
 
-    school_match <- dplyr::filter(school_df, mde_school_id == clicked_id)
-    daycare_match <- dplyr::filter(daycare_df, idsch == clicked_id)
+    school_match <- dplyr::filter(school_df, school_id == clicked_id)
+    daycare_match <- dplyr::filter(daycare_df, facility_id == clicked_id)
 
     name <- NULL
     if (nrow(school_match) > 0) {
       name <- school_match$school_name[1]
-      selected_school_id(school_match$mde_school_id[1])
+      selected_school_id(school_match$school_id[1])
     } else if (nrow(daycare_match) > 0) {
-      name <- as.character(daycare_match$idsch[1])
-      selected_school_id(daycare_match$idsch[1])
+      name <- as.character(daycare_match$facility_id[1])
+      selected_school_id(daycare_match$facility_id[1])
     }
 
     if (!is.null(name) && !is.na(name)) {
@@ -128,10 +122,10 @@ subMapServer <- function(input, output, session,
       point_type = input$point_type,
       selected_district = input$selected_district,
       selected_county = input$selected_county,
-      district_data = district_map_data,
-      county_data = county_map_data,
-      school_data = school_demo_joined,
-      childcare_data = daycare_joined
+      district_data = districts,
+      county_data = counties,
+      school_data = schools,
+      childcare_data = facilities
     )
     # Highlight the selected school or child care on the submap and store its
     # ID in selected_school_id
@@ -143,7 +137,7 @@ subMapServer <- function(input, output, session,
         slice(1)
 
       if (nrow(selected_row) > 0) {
-        selected_school_id(selected_row$mde_school_id)
+        selected_school_id(selected_row$school_id)
         leafletProxy("sub_map") %>%
           clearGroup("highlight") %>%
           addCircleMarkers(
@@ -162,10 +156,10 @@ subMapServer <- function(input, output, session,
       }
     } else if (point_type == "Child Cares") {
       selected_row <- area$childcares %>%
-        filter(idsch == input$selected_location)
+        filter(facility_id == input$selected_location)
 
       if (nrow(selected_row) > 0) {
-        selected_school_id(selected_row$idsch)
+        selected_school_id(selected_row$facility_id)
         leafletProxy("sub_map") %>%
           clearGroup("highlight") %>%
           addCircleMarkers(
@@ -177,7 +171,7 @@ subMapServer <- function(input, output, session,
             fillOpacity = 1,
             group = "highlight",
             popup = paste0(
-              "<b>", selected_row$daycare_name, "</b><br>",
+              "<b>", selected_row$facility_name, "</b><br>",
               "MMR: ", format_vax_pct(selected_row$full_vax_pct)
             )
           )
@@ -188,11 +182,11 @@ subMapServer <- function(input, output, session,
         slice(1)
 
       childcare_row <- area$childcares %>%
-        filter(daycare_name == input$selected_location) %>%
+        filter(facility_name == input$selected_location) %>%
         slice(1)
 
       if (nrow(school_row) > 0) {
-        selected_school_id(school_row$mde_school_id)
+        selected_school_id(school_row$school_id)
         leafletProxy("sub_map") %>%
           clearGroup("highlight") %>%
           addCircleMarkers(
@@ -209,7 +203,7 @@ subMapServer <- function(input, output, session,
             )
           )
       } else if (nrow(childcare_row) > 0) {
-        selected_school_id(childcare_row$idsch)
+        selected_school_id(childcare_row$facility_id)
         leafletProxy("sub_map") %>%
           clearGroup("highlight") %>%
           addCircleMarkers(
@@ -221,7 +215,7 @@ subMapServer <- function(input, output, session,
             fillOpacity = 1,
             group = "highlight",
             popup = paste0(
-              "<b>", childcare_row$daycare_name, "</b><br>",
+              "<b>", childcare_row$facility_name, "</b><br>",
               "MMR: ", format_vax_pct(childcare_row$full_vax_pct)
             )
           )
@@ -238,10 +232,10 @@ subMapServer <- function(input, output, session,
       point_type = input$point_type,
       selected_district = input$selected_district,
       selected_county = input$selected_county,
-      district_data = district_map_data,
-      county_data = county_map_data,
-      school_data = school_demo_joined,
-      childcare_data = daycare_joined
+      district_data = districts,
+      county_data = counties,
+      school_data = schools,
+      childcare_data = facilities
     )
 
     boundary_shape <- area$boundary
@@ -266,8 +260,8 @@ subMapServer <- function(input, output, session,
 
     is_district_mode <- !is.null(input$boundary_type) && input$boundary_type == "district"
 
-    if (!is_district_mode && !is.null(school_district_data)) {
-      county_districts <- filter_spatial_safe(school_district_data, boundary_shape)
+    if (!is_district_mode && !is.null(districts)) {
+      county_districts <- filter_spatial_safe(districts, boundary_shape)
 
       if (nrow(county_districts) > 0) {
         map <- map |>
@@ -305,9 +299,9 @@ subMapServer <- function(input, output, session,
     submap_title_vax(
       boundary_type = input$boundary_type,
       selected_district = input$selected_district,
-      district_data = district_map_data,
+      district_data = districts,
       selected_county = input$selected_county,
-      county_data = county_map_data
+      county_data = counties
     )
   })
 }

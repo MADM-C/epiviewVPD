@@ -2,31 +2,35 @@
 # TODO(#20): parts of this file are specific to measles and MMR
 # (labels such as "MMR Eligible", column names)
 
-build_district_lookup <- function(district_map_data) {
-  district_map_data %>%
-    select(PREFNAME, join_key) %>%
+# Inputs below are the standard app data (load_app_data.R).
+
+# District names by district_id (districts without boundaries)
+build_district_lookup <- function(districts) {
+  districts %>%
+    select(district_name, district_id) %>%
     st_drop_geometry()
 }
 
-# `district_data` is only used when boundary = "district".
-build_school_table <- function(school_demo_joined, boundary = "county", district_data = NULL) {
-  school_df <- school_demo_joined %>%
+# `district_data` (from build_district_lookup()) is only used when
+# boundary = "district".
+build_school_table <- function(schools, boundary = "county", district_data = NULL) {
+  school_df <- schools %>%
     st_drop_geometry()
 
   school_df <- if (boundary == "district") {
     school_df %>%
-      left_join(district_data, by = c("mde_district_key" = "join_key")) %>%
-      mutate(area = PREFNAME)
+      left_join(district_data, by = "district_id") %>%
+      mutate(area = district_name)
   } else {
     school_df %>%
-      mutate(area = str_to_title(COUNTYNAME))
+      mutate(area = county_name)
   }
 
   school_df %>%
     mutate(
       area,
       name = school_name,
-      type = sch_type,
+      type = school_type,
       full_vax_pct_chr = full_vax_pct, # retain the original string (e.g. ">95")
       full_vax_pct_num = suppressWarnings(
         as.numeric(str_extract(full_vax_pct, "[0-9.]+"))
@@ -35,7 +39,8 @@ build_school_table <- function(school_demo_joined, boundary = "county", district
       partial_vax_pct_num = suppressWarnings(
         as.numeric(str_extract(partial_vax_pct, "[0-9]+"))
       ),
-      total_enrollment,
+      # display column for the Enrollment column and sort option
+      total_enrollment = enroll,
       .keep = "none"
     ) %>%
     filter(
@@ -64,17 +69,17 @@ build_school_table <- function(school_demo_joined, boundary = "county", district
     rename(!!boundary := area)
 }
 
-build_daycare_table <- function(daycare_joined) {
-  daycare_joined %>%
+build_daycare_table <- function(facilities) {
+  facilities %>%
     st_drop_geometry() %>%
     mutate(
-      county = str_to_title(COUNTYNAME),
-      name = daycare_name,
+      county = county_name,
+      name = facility_name,
       # numeric helper from strings like "94.2", ">95", "95%"
       full_vax_pct_chr = full_vax_pct,
       is_blurred = grepl("^>", full_vax_pct),
       full_vax_pct = suppressWarnings(as.numeric(str_extract(full_vax_pct, "[0-9.]+"))),
-      total_enrollment = enroll_mmreligible,
+      total_enrollment = enroll_eligible,
       .keep = "none"
     ) %>%
     filter(!is.na(total_enrollment)) %>%

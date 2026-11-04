@@ -23,17 +23,9 @@
 #
 # Data Sources
 # ------------
-# county_map_data
-#   Spatial dataset of the state's counties joined with vaccination
-#   coverage and aggregated school demographic data.
-#
-# measles_cases
-#   County-level measles case dataset containing counts by year and
-#   age group used for secondary map switch.
-#
-# mn_counties
-#   Base county shapefile used for spatial joins and lookup of county
-#   names when map polygons are clicked.
+# counties, districts
+#   Standard counties and districts objects (load_app_data.R):
+#   boundaries with vaccination coverage and enrollment.
 #
 # pal_county
 #   Color palette function used to shade counties according to MMR
@@ -74,17 +66,16 @@
 # ============================================================
 
 
-countyMapServer <- function(input, output, session, county_map_data, mn_counties, pal_county,
-                            school_district_data = NULL, district_map_data = NULL) {
+countyMapServer <- function(input, output, session, counties, pal_county, districts = NULL) {
 
   # === County-level OR District-Level Leaflet Map ===
   output$county_map <- renderLeaflet({
     is_district_mode <- !is.null(input$boundary_type) && input$boundary_type == "district"
 
-    if (is_district_mode && !is.null(district_map_data)) {
-      county_district_map_dashboard(district_map_data, pal_county)
+    if (is_district_mode && !is.null(districts)) {
+      county_district_map_dashboard(districts, pal_county, "district")
     } else {
-      county_district_map_dashboard(county_map_data, pal_county)
+      county_district_map_dashboard(counties, pal_county, "county")
     }
   })
 
@@ -94,13 +85,11 @@ countyMapServer <- function(input, output, session, county_map_data, mn_counties
     is_district_mode <- !is.null(input$boundary_type) && input$boundary_type == "district"
 
     if (is_district_mode) {
-      # clicked id is join_key (unique per district, handles Minneapolis = "S1")
+      # clicked id is district_id
       updateSelectInput(session, "selected_district", selected = clicked)
     } else {
-      # clicked id is county_lower
-      match <- mn_counties %>%
-        filter(county_lower == clicked) %>%
-        pull(county_name)
+      # clicked id is the lower-case county name (map_layer_ids())
+      match <- counties$county_name[map_layer_ids(counties, "county") == clicked]
       if (length(match) == 1) {
         updateSelectInput(session, "selected_county", selected = match)
       }
@@ -116,8 +105,7 @@ countyMapServer <- function(input, output, session, county_map_data, mn_counties
       return()
     }
 
-    selected_lower <- tolower(input$selected_county)
-    highlight_selected(county_map_data, selected_lower)
+    highlight_selected(counties, tolower(input$selected_county), "county")
 
   })
 
@@ -128,19 +116,18 @@ countyMapServer <- function(input, output, session, county_map_data, mn_counties
     if (is.null(input$boundary_type) || input$boundary_type != "district") {
       return()
     }
-    if (is.null(district_map_data)) {
+    if (is.null(districts)) {
       return()
     }
 
-    selected_lower <- input$selected_district
-    highlight_selected(district_map_data, selected_lower)
+    highlight_selected(districts, input$selected_district, "district")
 
   })
 
   # === Create county map title with statewide MMR coverage ===
 
   output$county_map_title <- renderUI({
-    rate <- calc_statewide_k12(county_map_data)
+    rate <- calc_statewide_k12(counties)
 
     tagList(
       h4(

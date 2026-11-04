@@ -30,6 +30,7 @@ Imports:
   tibble,
   tidygeocoder,
   tidyr
+VignetteBuilder: knitr
 Suggests:
   pkgload,
   testthat (>= 3.0.0)

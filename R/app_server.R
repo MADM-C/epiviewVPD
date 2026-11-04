@@ -29,28 +29,19 @@
 # StatewideCasesServer()→ historical measles cases on statewide map
 # resourceServer()      → dashboard resources
 #
-# Input:  app_data, the named list returned by load_app_data()
+# Input:  app_data, the standard app data returned by load_app_data()
 # Output: the server function passed to shinyApp() in run_dashboard()
 # ============================================================
 
 app_server <- function(app_data) {
-  county_map_data <- app_data$county_map_data
-  mn_counties <- app_data$mn_counties
-  measles_cases <- app_data$measles_cases
-  school_demo_joined <- app_data$school_demo_joined
-  daycare_joined <- app_data$daycare_joined
-  mmr_grade <- app_data$mmr_grade
-  school_district_data <- app_data$school_district_data
-  district_map_data <- app_data$district_map_data
-  healthcare_center_data <- app_data$healthcare_center_data
-
   # ==== Color Palette ====
-  pal_county <- county_palette(county_map_data$full_vax_pct)
+  pal_county <- county_palette(app_data$counties$full_vax_pct_num)
 
   # ==== Server ====
   function(input, output, session) {
-    # Reactive value to store the current county selection
-    current_county <- reactiveVal("Aitkin")
+    # Reactive value to store the current county selection; starts at the
+    # first county in the county dropdown
+    current_county <- reactiveVal(sort(unique(app_data$counties$county_name))[1])
 
     # Update stored value when dashboard selection changes
     observeEvent(input$selected_county, {
@@ -91,10 +82,10 @@ app_server <- function(app_data) {
     # Initialize dropdowns when the app loads
     observe({
       # Populate county dropdown with sorted list of unique county names
-      updateSelectInput(session, "selected_county", choices = sort(unique(mn_counties$county_name)))
+      updateSelectInput(session, "selected_county", choices = sort(unique(app_data$counties$county_name)))
 
-      # Populate district dropdown (display name = PREFNAME, value = join_key)
-      district_choices <- setNames(district_map_data$join_key, district_map_data$PREFNAME)
+      # Populate district dropdown (display name = district_name, value = district_id)
+      district_choices <- setNames(app_data$districts$district_id, app_data$districts$district_name)
       district_choices <- district_choices[order(names(district_choices))]
       updateSelectInput(session, "selected_district", choices = district_choices)
 
@@ -116,11 +107,9 @@ app_server <- function(app_data) {
       input = input,
       output = output,
       session = session,
-      county_map_data = county_map_data,
-      mn_counties = mn_counties,
+      counties = app_data$counties,
       pal_county = pal_county,
-      school_district_data = school_district_data,
-      district_map_data = district_map_data
+      districts = app_data$districts
     )
 
     # === Submap ====
@@ -129,13 +118,12 @@ app_server <- function(app_data) {
       input = input,
       output = output,
       session = session,
-      school_demo_joined = school_demo_joined,
-      daycare_joined = daycare_joined,
-      county_map_data = county_map_data,
+      schools = app_data$schools,
+      facilities = app_data$facilities,
+      counties = app_data$counties,
       selected_school_id = selected_school_id,
       format_vax_pct = format_vax_pct,
-      school_district_data = school_district_data,
-      district_map_data = district_map_data
+      districts = app_data$districts
     )
 
     # === Grade level Details Section ====
@@ -145,12 +133,12 @@ app_server <- function(app_data) {
       output = output,
       session = session,
       selected_school_id = selected_school_id,
-      school_demo_joined = school_demo_joined,
-      daycare_joined = daycare_joined,
-      mmr_grade = mmr_grade,
+      schools = app_data$schools,
+      facilities = app_data$facilities,
+      grades = app_data$grades,
       format_vax_pct = format_vax_pct,
-      county_map_data = county_map_data,
-      district_map_data = district_map_data
+      counties = app_data$counties,
+      districts = app_data$districts
     )
 
     # ==== GT Table Tab ====
@@ -160,26 +148,24 @@ app_server <- function(app_data) {
       output = output,
       session = session,
       selected_school_id = selected_school_id,
-      school_demo_joined = school_demo_joined,
-      daycare_joined = daycare_joined,
-      mmr_grade = mmr_grade,
-      mn_counties = mn_counties,
-      measles_cases = measles_cases,
+      schools = app_data$schools,
+      facilities = app_data$facilities,
+      counties = app_data$counties,
+      cases = app_data$cases,
       format_vax_pct = format_vax_pct,
-      district_map_data = district_map_data
+      districts = app_data$districts
     )
 
     # ==== Measles Outbreak Tab ====
 
 
     # Initialize the proximity map module
-    ## For any updating of the app, switch out what dataframe is being utilized in the reactive expressions below
     proximity_results <- proximityMapServer(
-      school_data = reactive(school_demo_joined),
-      daycare_data = reactive(daycare_joined),
-      county_map_data = reactive(county_map_data),
-      healthcare_center_data = reactive(healthcare_center_data),
-      school_district_data = school_district_data,
+      schools = reactive(app_data$schools),
+      facilities = reactive(app_data$facilities),
+      counties = reactive(app_data$counties),
+      healthcare_center_data = reactive(app_data$healthcare_centers),
+      districts = app_data$districts,
       output = output,
       input = input,
       session = session
@@ -199,8 +185,8 @@ app_server <- function(app_data) {
       input = input,
       output = output,
       session = session,
-      measles_cases = measles_cases,
-      mn_counties = mn_counties
+      cases = app_data$cases,
+      counties = app_data$counties
     )
 
     # === Resources ===

@@ -5,7 +5,7 @@
 grade_level_plot <- function(grade_data = NULL, school_id) {
 
   grade_data <- grade_data |>
-    dplyr::filter(mde_school_id == school_id) |>
+    dplyr::filter(school_id == .env$school_id) |>
     mutate(
       grade = ifelse(grade == 0, "K", as.character(grade)),
       grade = factor(grade, levels = c(as.character(12:1), "K")),

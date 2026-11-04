@@ -9,83 +9,86 @@
 #
 # Circle sizes scale with case counts, allowing quick visual
 # comparison across counties.
+#
+# Inputs: cases and counties from the standard app data
+# (load_app_data.R), joined on county_name.
 # ============================================================
 
-StatewideCasesServer <- function(input, output, session, measles_cases, mn_counties) {
+StatewideCasesServer <- function(input, output, session, cases, counties) {
 
-output$statewide_map <- renderLeaflet({
-  # ---- filter cases ----
-  filtered_cases <- measles_cases |>
-    dplyr::filter(
-      year >= input$year_range[1],
-      year <= input$year_range[2],
-      dplyr::case_when(
-        input$case_age_group == "All Ages" ~ TRUE,
-        TRUE ~ age_group == input$case_age_group
-      )
-    ) |>
-    dplyr::group_by(county) |>
-    dplyr::summarise(
-      n_cases = sum(n_cases, na.rm = TRUE),
-      .groups = "drop"
-    ) |>
-    dplyr::left_join(
-      mn_counties,
-      by = c("county" = "county_lower")
-    ) |>
-    sf::st_as_sf() |>
-    dplyr::mutate(
-      centroid = sf::st_centroid(geometry)
-    ) |>
-    sf::st_set_geometry("centroid")
-
-  # ---- build map ----
-  map <- leaflet(
-    mn_counties,
-    options = leafletOptions(minZoom = 5, maxZoom = 9)
-  ) |>
-    setView(lng = -94.5, lat = 46.5, zoom = 6) |>
-    setMaxBounds(-105, 40, -84, 52) |>
-    addProviderTiles("Esri.WorldTopoMap") |>
-    # county boundaries
-    addPolygons(
-      fillColor = "#f5f5f5",
-      fillOpacity = 0.3,
-      color = "#bdbdbd",
-      weight = 1,
-      label = ~county_name,
-      labelOptions = labelOptions(
-        direction = "auto",
-        textsize = "13px",
-        opacity = 0.9
-      )
-    )
-
-  # ---- add case circles safely ----
-  if (nrow(filtered_cases) > 0) {
-    map <- map |>
-      addCircleMarkers(
-        data = filtered_cases,
-        radius = ~ pmin(10, sqrt(n_cases) * 2),
-        fillColor = "purple",
-        color = "black",
-        stroke = TRUE,
-        fillOpacity = 0.85,
-        popup = ~ paste0(
-          "County: ", county_name,
-          "<br>Cases: ", n_cases
-        ),
-        label = ~ paste0(
-          county_name,
-          " County: ",
-          n_cases,
-          " case",
-          ifelse(n_cases == 1, "", "s")
+  output$statewide_map <- renderLeaflet({
+    # ---- filter cases ----
+    filtered_cases <- cases |>
+      dplyr::filter(
+        year >= input$year_range[1],
+        year <= input$year_range[2],
+        dplyr::case_when(
+          input$case_age_group == "All Ages" ~ TRUE,
+          TRUE ~ age_group == input$case_age_group
         )
       ) |>
-      # Legend: case count circle size
-    addControl(
-      html = HTML("
+      dplyr::group_by(county_name) |>
+      dplyr::summarise(
+        n_cases = sum(n_cases, na.rm = TRUE),
+        .groups = "drop"
+      ) |>
+      dplyr::left_join(
+        dplyr::select(counties, "county_name"),
+        by = "county_name"
+      ) |>
+      sf::st_as_sf() |>
+      dplyr::mutate(
+        centroid = sf::st_centroid(geometry)
+      ) |>
+      sf::st_set_geometry("centroid")
+
+    # ---- build map ----
+    map <- leaflet(
+      counties,
+      options = leafletOptions(minZoom = 5, maxZoom = 9)
+    ) |>
+      setView(lng = -94.5, lat = 46.5, zoom = 6) |>
+      setMaxBounds(-105, 40, -84, 52) |>
+      addProviderTiles("Esri.WorldTopoMap") |>
+      # county boundaries
+      addPolygons(
+        fillColor = "#f5f5f5",
+        fillOpacity = 0.3,
+        color = "#bdbdbd",
+        weight = 1,
+        label = ~county_name,
+        labelOptions = labelOptions(
+          direction = "auto",
+          textsize = "13px",
+          opacity = 0.9
+        )
+      )
+
+    # ---- add case circles safely ----
+    if (nrow(filtered_cases) > 0) {
+      map <- map |>
+        addCircleMarkers(
+          data = filtered_cases,
+          radius = ~ pmin(10, sqrt(n_cases) * 2),
+          fillColor = "purple",
+          color = "black",
+          stroke = TRUE,
+          fillOpacity = 0.85,
+          popup = ~ paste0(
+            "County: ", county_name,
+            "<br>Cases: ", n_cases
+          ),
+          label = ~ paste0(
+            county_name,
+            " County: ",
+            n_cases,
+            " case",
+            ifelse(n_cases == 1, "", "s")
+          )
+        ) |>
+        # Legend: case count circle size
+        addControl(
+          html = HTML("
 <div style='padding:6px 8px;
             background:rgba(255,255,255,0.85);
             border:1px solid #aaa;
@@ -112,10 +115,10 @@ output$statewide_map <- renderLeaflet({
 
 </div>
 "),
-      position = "topright"
-    )
-  }
+          position = "topright"
+        )
+    }
 
-  map
+    map
   })
 }
