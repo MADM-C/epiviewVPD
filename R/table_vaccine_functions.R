@@ -115,26 +115,31 @@ sort_coverage_table <- function(filtered_data, table_type, boundary_type, sort_b
   }
 }
 
-# `chr` is the original coverage string; values starting with ">" are blurred.
+# Cell colors for the coverage column. x = coverage numbers, chr = the
+# coverage as published; blurred values (">95", "<5") are colored by the
+# number they count as (pct_number(), load_app_data.R). Also used by
+# inst/reports/gt_summary_report.Rmd.
 mmr_colors <- function(x, chr) {
+  x <- ifelse(grepl("^\\s*[<>]", chr), pct_number(chr), x)
   out <- rep("gray", length(x))
-
-  out[grepl("^>", chr)] <- "darkgreen"
-  out[!grepl("^>", chr) & !is.na(x) & x < 85] <- "red"
-  out[!grepl("^>", chr) & !is.na(x) & x >= 85 & x < 90] <- "orange"
-  out[!grepl("^>", chr) & !is.na(x) & x >= 90 & x < 95] <- "gold"
-  out[!grepl("^>", chr) & !is.na(x) & x >= 95] <- "darkgreen"
+  out[!is.na(x) & x < 85] <- "red"
+  out[!is.na(x) & x >= 85 & x < 90] <- "orange"
+  out[!is.na(x) & x >= 90 & x < 95] <- "gold"
+  out[!is.na(x) & x >= 95] <- "darkgreen"
   out
 }
 
 # nonreporting_note: source note under the school tables (settings
-# notes$nonreporting_table, dashboard_settings.R); NULL leaves it out
+# notes$nonreporting_table, dashboard_settings.R); NULL leaves it out.
+# redacted_childcares_note: the same for the child care table
+# (notes$redacted_childcares).
 render_coverage_gt <- function(sorted_data,
                                table_type,
                                boundary_type,
                                selected_county,
                                selected_district,
-                               nonreporting_note = DEFAULT_SETTINGS$notes$nonreporting_table) {
+                               nonreporting_note = default_settings()$notes$nonreporting_table,
+                               redacted_childcares_note = default_settings()$notes$redacted_childcares) {
   area_name <- if (table_type == "School Vaccine Coverage" && boundary_type == "district") {
     selected_district
   } else {
@@ -198,10 +203,11 @@ render_coverage_gt <- function(sorted_data,
         name             = "Child Care Name",
         full_vax_pct     = "MMR %",
         total_enrollment = "MMR Eligible"
-      ) %>%
-      tab_source_note(
-        source_note = "MMR coverage is not displayed for facilities with fewer than 10 enrolled children."
       )
+    if (!is.null(redacted_childcares_note)) {
+      table_gt <- table_gt %>%
+        tab_source_note(source_note = redacted_childcares_note)
+    }
   }
 
   table_gt

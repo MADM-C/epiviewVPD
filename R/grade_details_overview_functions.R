@@ -197,8 +197,13 @@ enrollment_label <- function(notes, label = "Total Enrollment") {
 enrollment_footnote <- function(notes) {
   if (!is.null(notes$enrollment)) list(tags$br(), notes$enrollment)
 }
-enrollment_footnote_html <- function(notes) {
-  if (!is.null(notes$enrollment)) paste0("<br><br>", notes$enrollment)
+# Italic footnote under the school and child care panels: what "Redacted"
+# and blurred values mean (notes$redacted, notes$blurred), then the
+# enrollment note. NULL when the settings give none of them.
+privacy_footnote_html <- function(notes) {
+  parts <- c(paste(c(notes$redacted, notes$blurred), collapse = " "), notes$enrollment)
+  parts <- parts[nzchar(parts)]
+  if (length(parts) > 0) paste0("<em>", paste(parts, collapse = "<br><br>"), "</em>")
 }
 
 # ============================================================
@@ -207,23 +212,23 @@ enrollment_footnote_html <- function(notes) {
 # ===========================================================
 
 render_school_overview <- function(
-    school_id,
-    selected_location,
-    school_type,
-    total_enrollment,
-    languages,
-    district_name,
-    district_vax,
-    county_name_school,
-    county_vax,
-    overall_cov,
-    grade_rows,
-    all_grades_redacted,
-    nonresponder_status,
-    med_exempt,
-    nonmed_exempt,
-    partial_vax,
-    notes = DEFAULT_SETTINGS$notes
+  school_id,
+  selected_location,
+  school_type,
+  total_enrollment,
+  languages,
+  district_name,
+  district_vax,
+  county_name_school,
+  county_vax,
+  overall_cov,
+  grade_rows,
+  all_grades_redacted,
+  nonresponder_status,
+  med_exempt,
+  nonmed_exempt,
+  partial_vax,
+  notes = default_settings()$notes
 ) {
   # base level overview with only school-wide and county-wide data
   tagList(
@@ -275,11 +280,11 @@ render_school_overview <- function(
 
     if (!is.na(overall_cov) && isTRUE(all_grades_redacted)) {
       tagList(
-        tags$p("Grade-level vaccination data are redacted because fewer than 10 students were enrolled in each grade.",
-               tags$br(),
-               "The overall coverage reflects total reported students across all grades.",
-               enrollment_footnote(notes),
-               class = "grade-details-footnote"
+        tags$p(
+          if (!is.null(notes$redacted_grades)) list(notes$redacted_grades, tags$br()),
+          "The overall coverage reflects total reported students across all grades.",
+          enrollment_footnote(notes),
+          class = "grade-details-footnote"
         )
       )
     } else if (isTRUE(nonresponder_status)) {
@@ -296,17 +301,9 @@ render_school_overview <- function(
           tags$div(plotOutput("grade_plot", height = "250px", width = "350px")),
           tags$div(tableOutput("grade_table"))
         ),
-        tags$p(
-          HTML(
-            paste0(
-              "<em>",
-              "Redacted indicates the number of eligible students was fewer than 10. Blurred values (e.g., '>95%') are intentionally rounded up for privacy.",
-              enrollment_footnote_html(notes),
-              "</em>"
-            )
-          ),
-          class = "grade-details-footnote"
-        )
+        if (!is.null(privacy_footnote_html(notes))) {
+          tags$p(HTML(privacy_footnote_html(notes)), class = "grade-details-footnote")
+        }
       )
     }
   )
@@ -318,14 +315,14 @@ render_school_overview <- function(
 # ===========================================================
 
 render_childcare_overview <- function(
-    school_id,
-    facility_data = NULL,
-    overall_cov,
-    total,
-    total_elig,
-    county_name_daycare,
-    county_vax,
-    notes = DEFAULT_SETTINGS$notes
+  school_id,
+  facility_data = NULL,
+  overall_cov,
+  total,
+  total_elig,
+  county_name_daycare,
+  county_vax,
+  notes = default_settings()$notes
 ) {
   tagList(
     tags$h4("MMR Coverage in Child Cares", class = "grade-details-heading"),
@@ -334,16 +331,8 @@ render_childcare_overview <- function(
     tags$p(tags$strong("Total Eligible: "), ifelse(is.na(total_elig), "N/A", total_elig), class = "grade-details-details"),
     tags$p(tags$strong("Child Care MMR Coverage: "), format_vax_pct(overall_cov), class = "grade-details-details"),
     tags$p(tags$strong(paste0(county_name_daycare, " MMR Coverage")), format_vax_pct(county_vax), class = "grade-details-details"),
-    tags$p(
-      HTML(
-        paste0(
-          "<em>",
-          "Redacted indicates the number of eligible students was fewer than 10. Blurred values (e.g., '>95%') are intentionally rounded up for privacy.",
-          enrollment_footnote_html(notes),
-          "</em>"
-        )
-      ),
-      class = "grade-details-footer"
-    )
+    if (!is.null(privacy_footnote_html(notes))) {
+      tags$p(HTML(privacy_footnote_html(notes)), class = "grade-details-footer")
+    }
   )
 }

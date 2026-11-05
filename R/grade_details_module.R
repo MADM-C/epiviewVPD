@@ -18,8 +18,8 @@
 # • Displays grade-level vaccination coverage for the selected
 #   school in both a table and a bar chart.
 # • Shows overall school-level enrollment and total MMR coverage.
-# • Handles privacy redactions where grade-level enrollment is
-#   fewer than 10 students.
+# • Handles privacy redactions (wording from the settings' notes,
+#   dashboard_settings.R).
 # • Formats blurred vaccination values (e.g., ">95%") for both
 #   table display and chart rendering.
 # • Provides a searchable dropdown selector for schools and
@@ -106,7 +106,7 @@ gradeDetailsServer <- function(input, output, session,
                                format_vax_pct,
                                counties,
                                districts = NULL,
-                               notes = DEFAULT_SETTINGS$notes,
+                               notes = default_settings()$notes,
                                map_view = map_view_from_counties(counties)) {
 
   # === Table of Grade-Level MMR for Selected School ====

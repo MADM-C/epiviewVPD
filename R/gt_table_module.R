@@ -103,7 +103,7 @@ gtServer <- function(input, output, session,
                      cases,
                      counties,
                      districts = NULL,
-                     notes = DEFAULT_SETTINGS$notes) {
+                     notes = default_settings()$notes) {
   # ---------- Build School Table (with demographics) ----------
 
   district_data <- build_district_lookup(districts)
@@ -244,7 +244,8 @@ gtServer <- function(input, output, session,
       input$gt_boundary_type,
       input$gt_selected_county,
       input$gt_selected_district,
-      nonreporting_note = notes$nonreporting_table
+      nonreporting_note = notes$nonreporting_table,
+      redacted_childcares_note = notes$redacted_childcares
     )
   })
 
@@ -292,7 +293,8 @@ gtServer <- function(input, output, session,
         county = input$gt_selected_county,
         district = input$gt_selected_district,
         gt_sort_by = input$gt_sort_by,
-        nonreporting_note = notes$nonreporting_table
+        nonreporting_note = notes$nonreporting_table,
+        redacted_childcares_note = notes$redacted_childcares
       )
 
       # Render the report

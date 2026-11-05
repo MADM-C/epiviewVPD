@@ -12,6 +12,7 @@ params:
   district: NULL
   gt_sort_by: NULL
   nonreporting_note: NULL
+  redacted_childcares_note: NULL
 ---
 
 ```{css, echo=FALSE}
@@ -288,17 +289,7 @@ if (nrow(filtered_data) > 0 && params$table_type %in% c(
       # Apply custom color logic
       gt::data_color(
         columns = full_vax_pct,
-        colors = function(x) {
-          out <- rep("gray", length(x))
-          chr <- sorted_data$full_vax_pct_chr
-
-          out[grepl("^>", chr)] <- "darkgreen" # blurred (">95", ">98")
-          out[!grepl("^>", chr) & !is.na(x) & x < 85] <- "red"
-          out[!grepl("^>", chr) & !is.na(x) & x >= 85 & x < 90] <- "orange"
-          out[!grepl("^>", chr) & !is.na(x) & x >= 90 & x < 95] <- "gold"
-          out[!grepl("^>", chr) & !is.na(x) & x >= 95] <- "darkgreen"
-          out
-        }
+        colors = function(x) mmr_colors(x, sorted_data$full_vax_pct_chr)
       ) %>%
       gt::cols_hide(columns = full_vax_pct_chr)
   } else if (params$table_type == "School Vaccine Coverage" && params$boundary_type == "district") {
@@ -315,17 +306,7 @@ if (nrow(filtered_data) > 0 && params$table_type %in% c(
       # Apply custom color logic
       gt::data_color(
         columns = full_vax_pct,
-        fn = function(x) {
-          out <- rep("gray", length(x))
-          chr <- sorted_data$full_vax_pct_chr
-
-          out[grepl("^>", chr)] <- "darkgreen" # blurred (">95", ">98")
-          out[!grepl("^>", chr) & !is.na(x) & x < 85] <- "red"
-          out[!grepl("^>", chr) & !is.na(x) & x >= 85 & x < 90] <- "orange"
-          out[!grepl("^>", chr) & !is.na(x) & x >= 90 & x < 95] <- "gold"
-          out[!grepl("^>", chr) & !is.na(x) & x >= 95] <- "darkgreen"
-          out
-        }
+        fn = function(x) mmr_colors(x, sorted_data$full_vax_pct_chr)
       ) %>%
       gt::cols_hide(columns = full_vax_pct_chr)
   }
@@ -372,10 +353,12 @@ if (nrow(filtered_data) > 0 && params$table_type %in% c(
         name             = "Child Care Name",
         full_vax_pct     = "MMR %",
         total_enrollment = "MMR Eligible"
-      ) %>%
-      gt::tab_source_note(
-        source_note = "MMR coverage is not displayed for facilities with fewer than 10 enrolled children."
       )
+    # Source note from the dashboard settings (notes$redacted_childcares)
+    if (!is.null(params$redacted_childcares_note)) {
+      table_gt <- table_gt %>%
+        gt::tab_source_note(source_note = params$redacted_childcares_note)
+    }
   }
   table_gt
 }

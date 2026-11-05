@@ -85,9 +85,12 @@ DATA_FILES <- list(
 
 # Input:  data_dir = folder with the files in DATA_FILES;
 #         suppressed_offset = how far past its number a suppressed
-#         percentage (">95", "<5") is counted in full_vax_pct_num
+#         percentage (">95", "<5") is counted in full_vax_pct_num;
+#         redacted_codes = values that mean "withheld" (e.g. "*"), read as
+#         blank in the count and percentage columns
+#         (both from the settings' suppression entry, dashboard_settings.R)
 # Output: named list of app data objects (see top of file)
-load_app_data <- function(data_dir, suppressed_offset = 1) {
+load_app_data <- function(data_dir, suppressed_offset = 1, redacted_codes = character(0)) {
   if (!dir.exists(data_dir)) {
     stop("The data folder \"", data_dir, "\" doesn't exist.", call. = FALSE)
   }
@@ -99,7 +102,7 @@ load_app_data <- function(data_dir, suppressed_offset = 1) {
   }
 
   problems <- new_problem_list()
-  raw <- lapply(names(DATA_FILES), function(layer) read_data_file(data_dir, layer, problems))
+  raw <- lapply(names(DATA_FILES), function(layer) read_data_file(data_dir, layer, problems, redacted_codes))
   names(raw) <- names(DATA_FILES)
   # Unreadable files or missing columns: the checks below can't run
   if (problems$blocking()) report_problems(problems, data_dir)
@@ -157,7 +160,7 @@ load_app_data <- function(data_dir, suppressed_offset = 1) {
 # Reads one file of DATA_FILES: CSV as text (IDs keep leading zeros, blank
 # cells are NA), GeoJSON as sf in EPSG:4326. Checks the required columns
 # and turns the `numbers` columns into numbers.
-read_data_file <- function(data_dir, layer, problems) {
+read_data_file <- function(data_dir, layer, problems, redacted_codes = character(0)) {
   spec <- DATA_FILES[[layer]]
   path <- file.path(data_dir, spec$file)
   if (grepl("\\.geojson$", spec$file)) {
@@ -179,6 +182,12 @@ read_data_file <- function(data_dir, layer, problems) {
       }
     )
     if (is.null(x)) return(NULL)
+    # Codes that mean "withheld" (settings suppression$redacted_codes, e.g.
+    # "*") count as blank in the count and percentage columns
+    if (length(redacted_codes) > 0) {
+      value_cols <- intersect(names(x), c(spec$numbers, grep("_pct$", names(x), value = TRUE)))
+      for (col in value_cols) x[[col]][trimws(x[[col]]) %in% redacted_codes] <- NA
+    }
   }
   missing <- setdiff(spec$required, names(x))
   if (length(missing) > 0) {
@@ -207,7 +216,8 @@ as_number <- function(x, file, col, problems) {
   if (length(bad) > 0) {
     problems$add(file, ": column ", col, " should hold numbers but has ",
                  paste0("\"", utils::head(bad, 3), "\"", collapse = ", "),
-                 if (length(bad) > 3) paste0(" and ", length(bad) - 3, " more"))
+                 if (length(bad) > 3) paste0(" and ", length(bad) - 3, " more"),
+                 " (if a value marks withheld data, list it in the settings' suppression$redacted_codes)")
   }
   num
 }
