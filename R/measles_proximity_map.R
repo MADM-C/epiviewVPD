@@ -1,11 +1,12 @@
 # Function to create the proximity map module
 # This function handles the interactive map, combining school and daycare facilities,
-# overlaying religious centers, and analyzing nearby low-vaccine facilities.
+# overlaying healthcare centers, and analyzing nearby low-vaccine facilities.
 # Parameters:
 #   schools, facilities, counties, healthcare_center_data: reactive
 #     expressions returning schools, child cares, counties and healthcare
 #     centers from the standard app data (load_app_data.R)
 #   districts: districts from the standard app data (or NULL)
+#   map_view: starting view for the map (map_view.R); NULL fits the counties
 #   output: Shiny output object
 #   input: Shiny input object
 #   session: Shiny session object
@@ -13,6 +14,7 @@
 # Depends on analyze_proximity.R and map_markers.R being sourced
 proximityMapServer <- function(schools, facilities, counties,
                                healthcare_center_data, districts = NULL,
+                               map_view = NULL,
                                output, input, session) {
   # Reactive expression to combine and clean facility data
   # Automatically updates when underlying school or daycare data changes
@@ -124,13 +126,15 @@ proximityMapServer <- function(schools, facilities, counties,
     id <- showNotification("Searching address...", duration = NULL, closeButton = FALSE)
     on.exit(removeNotification(id), add = TRUE)
 
-    # Geocode the address using OpenStreetMap (OSM)
+    # Geocode the address using OpenStreetMap (OSM), only looking within
+    # the area around the dashboard's counties
     tryCatch(
       {
         geo_result <- tidygeocoder::geo(
           address = input$address_input,
           method = "osm",
-          full_results = FALSE
+          full_results = FALSE,
+          custom_query = list(viewbox = search_area(counties()), bounded = 1)
         )
 
         # Check if valid coordinates
@@ -167,8 +171,9 @@ proximityMapServer <- function(schools, facilities, counties,
     county_data <- counties()
     healthcare <- healthcare_centers()
 
+    view <- if (is.null(map_view)) map_view_from_counties(county_data) else map_view
     map <- leaflet(options = leafletOptions(minZoom = 5, maxZoom = 20)) %>%
-      setView(lng = -94.5, lat = 46.5, zoom = 6) %>%
+      apply_map_view(view, limit_panning = FALSE) %>%
       addProviderTiles("Esri.WorldTopoMap")
 
     if (!is.null(county_data)) map <- map %>% addPolygons(data = county_data, color = "black", weight = 1)

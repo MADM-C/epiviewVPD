@@ -127,11 +127,14 @@ mmr_colors <- function(x, chr) {
   out
 }
 
+# nonreporting_note: source note under the school tables (settings
+# notes$nonreporting_table, dashboard_settings.R); NULL leaves it out
 render_coverage_gt <- function(sorted_data,
                                table_type,
                                boundary_type,
                                selected_county,
-                               selected_district) {
+                               selected_district,
+                               nonreporting_note = DEFAULT_SETTINGS$notes$nonreporting_table) {
   area_name <- if (table_type == "School Vaccine Coverage" && boundary_type == "district") {
     selected_district
   } else {
@@ -163,9 +166,6 @@ render_coverage_gt <- function(sorted_data,
           type             = "School Type",
           full_vax_pct     = "MMR %",
           total_enrollment = "Enrollment"
-        ) %>%
-        tab_source_note(
-          source_note = "Schools that did not report MMR vaccination coverage to MDH are not displayed."
         )
     } else {
       table_gt <- table_gt %>%
@@ -175,10 +175,11 @@ render_coverage_gt <- function(sorted_data,
           type             = "School Type",
           full_vax_pct     = "MMR %",
           total_enrollment = "Enrollment"
-        ) %>%
-        tab_source_note(
-          source_note = "Schools that did not report MMR vaccination coverage to MDH are not displayed."
         )
+    }
+    if (!is.null(nonreporting_note)) {
+      table_gt <- table_gt %>%
+        tab_source_note(source_note = nonreporting_note)
     }
   } else if (table_type == "Child Care Vaccine Coverage") {
     table_gt <- table_gt %>%

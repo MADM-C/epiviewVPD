@@ -11,7 +11,7 @@ get_facility_metrics <- function(is_school, is_childcare,
                                  county_data = NULL,
                                  district_data = NULL, grade_data = NULL) {
   if (isTRUE(is_school)) {
-    # --- check if the school was a non-responder, did not report data to MDH ---
+    # --- check if the school was a non-responder (did not report coverage data) ---
     nonresponder_status <- is_nonresponder(school_id, school_data = facility_data)
 
     # --- basic vaccination coverage information needed for dashboard ---
@@ -188,6 +188,19 @@ get_facility_metrics <- function(is_school, is_childcare,
   }
 }
 
+# Footnote helpers for the overviews below. notes = the settings' notes
+# (dashboard_settings.R); notes$enrollment, when set, is shown as a
+# footnote and enrollment labels get a "*" pointing to it.
+enrollment_label <- function(notes, label = "Total Enrollment") {
+  if (is.null(notes$enrollment)) label else paste0(label, "*")
+}
+enrollment_footnote <- function(notes) {
+  if (!is.null(notes$enrollment)) list(tags$br(), notes$enrollment)
+}
+enrollment_footnote_html <- function(notes) {
+  if (!is.null(notes$enrollment)) paste0("<br><br>", notes$enrollment)
+}
+
 # ============================================================
 # School-specific function to render high-level overview
 # using the inputs from get_facility_metrics()
@@ -209,14 +222,15 @@ render_school_overview <- function(
     nonresponder_status,
     med_exempt,
     nonmed_exempt,
-    partial_vax
+    partial_vax,
+    notes = DEFAULT_SETTINGS$notes
 ) {
   # base level overview with only school-wide and county-wide data
   tagList(
     tags$h4("MMR Coverage in Schools by Grade-Level", class = "grade-details-heading"),
     tags$div(stringr::str_wrap(selected_location, width = 65), class = "grade-details-facility"),
     tags$p(tags$strong("School Type: "), school_type, class = "grade-details-details"),
-    tags$p(tags$strong("Total Enrollment*: "), ifelse(is.na(total_enrollment), "N/A", total_enrollment), class = "grade-details-details"),
+    tags$p(tags$strong(paste0(enrollment_label(notes), ": ")), ifelse(is.na(total_enrollment), "N/A", total_enrollment), class = "grade-details-details"),
     tags$p(tags$strong("Schoolwide MMR Coverage: "),
            ifelse(isTRUE(nonresponder_status), "Data Unavailable", format_vax_pct(overall_cov)),
            class = "grade-details-details"
@@ -264,16 +278,14 @@ render_school_overview <- function(
         tags$p("Grade-level vaccination data are redacted because fewer than 10 students were enrolled in each grade.",
                tags$br(),
                "The overall coverage reflects total reported students across all grades.",
-               tags$br(),
-               "*Enrollment counts may differ between MDH and MDE records.",
+               enrollment_footnote(notes),
                class = "grade-details-footnote"
         )
       )
     } else if (isTRUE(nonresponder_status)) {
       tagList(
-        tags$p("MMR vaccination coverage is unavailable for schools that did not report data to MDH.",
-               tags$br(),
-               "*Enrollment counts may differ between MDH and MDE records.",
+        tags$p(notes$nonreporting_school,
+               enrollment_footnote(notes),
                class = "grade-details-footnote"
         )
       )
@@ -288,8 +300,8 @@ render_school_overview <- function(
           HTML(
             paste0(
               "<em>",
-              "Redacted indicates the number of eligible students was fewer than 10. Blurred values (e.g., '>95%') are intentionally rounded up for privacy.<br><br>",
-              "*Enrollment counts may differ between MDH and MDE records.",
+              "Redacted indicates the number of eligible students was fewer than 10. Blurred values (e.g., '>95%') are intentionally rounded up for privacy.",
+              enrollment_footnote_html(notes),
               "</em>"
             )
           ),
@@ -312,12 +324,13 @@ render_childcare_overview <- function(
     total,
     total_elig,
     county_name_daycare,
-    county_vax
+    county_vax,
+    notes = DEFAULT_SETTINGS$notes
 ) {
   tagList(
     tags$h4("MMR Coverage in Child Cares", class = "grade-details-heading"),
     tags$div(stringr::str_wrap(facility_data[facility_data$facility_id == school_id, ]$facility_name, width = 65), class = "grade-details-facility"),
-    tags$p(tags$strong("Total Enrollment*:"), ifelse(is.na(total), "N/A", total), class = "grade-details-details"),
+    tags$p(tags$strong(paste0(enrollment_label(notes), ":")), ifelse(is.na(total), "N/A", total), class = "grade-details-details"),
     tags$p(tags$strong("Total Eligible: "), ifelse(is.na(total_elig), "N/A", total_elig), class = "grade-details-details"),
     tags$p(tags$strong("Child Care MMR Coverage: "), format_vax_pct(overall_cov), class = "grade-details-details"),
     tags$p(tags$strong(paste0(county_name_daycare, " MMR Coverage")), format_vax_pct(county_vax), class = "grade-details-details"),
@@ -325,8 +338,8 @@ render_childcare_overview <- function(
       HTML(
         paste0(
           "<em>",
-          "Redacted indicates the number of eligible students was fewer than 10. Blurred values (e.g., '>95%') are intentionally rounded up for privacy.<br><br>",
-          "*Enrollment counts may differ between MDH and MDE records.",
+          "Redacted indicates the number of eligible students was fewer than 10. Blurred values (e.g., '>95%') are intentionally rounded up for privacy.",
+          enrollment_footnote_html(notes),
           "</em>"
         )
       ),

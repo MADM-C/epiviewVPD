@@ -48,6 +48,12 @@
 #   Helper function used to format vaccination percentages for
 #   consistent display across tables, charts, and popups.
 #
+# notes
+#   Footnotes about the data, from the settings file (dashboard_settings.R).
+#
+# map_view
+#   Starting view for the map in the downloaded report (map_view.R).
+#
 # Reactive Inputs Used
 # --------------------
 # input$selected_location
@@ -99,7 +105,9 @@ gradeDetailsServer <- function(input, output, session,
                                grades,
                                format_vax_pct,
                                counties,
-                               districts = NULL) {
+                               districts = NULL,
+                               notes = DEFAULT_SETTINGS$notes,
+                               map_view = map_view_from_counties(counties)) {
 
   # === Table of Grade-Level MMR for Selected School ====
   output$grade_table <- render_gt({
@@ -171,7 +179,8 @@ gradeDetailsServer <- function(input, output, session,
         nonresponder_status = metrics$nonresponder_status,
         med_exempt = metrics$med_exempt,
         nonmed_exempt = metrics$nonmed_exempt,
-        partial_vax = metrics$partial_vax
+        partial_vax = metrics$partial_vax,
+        notes = notes
       )
     } else if (is_childcare) {
       metrics <- get_facility_metrics(
@@ -189,7 +198,8 @@ gradeDetailsServer <- function(input, output, session,
         total = metrics$total,
         total_elig = metrics$total_elig,
         county_name_daycare = metrics$county_name_daycare,
-        county_vax = metrics$county_vax
+        county_vax = metrics$county_vax,
+        notes = notes
       )
     }
   })
@@ -246,7 +256,8 @@ gradeDetailsServer <- function(input, output, session,
         selected_school_id = selected_school_id(),
         district_data = districts,
         county_data = counties,
-        grade_data = grades
+        grade_data = grades,
+        map_view = map_view
       )
 
       # Render the report

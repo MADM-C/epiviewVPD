@@ -28,10 +28,12 @@ map_layer_ids <- function(map_data, boundary) {
 }
 
 # Input:  map_data = counties or districts from the standard app data
-#         (load_app_data.R); boundary = "county" or "district"
+#         (load_app_data.R); boundary = "county" or "district";
+#         map_view = starting view (map_view.R), by default one that fits map_data
 # Output: leaflet map shaded by coverage
 # Used by countyMapServer() and inst/reports/dashboard_report.Rmd.
-county_district_map_dashboard <- function(map_data, pal_county, boundary = c("county", "district")) {
+county_district_map_dashboard <- function(map_data, pal_county, boundary = c("county", "district"),
+                                          map_view = map_view_from_counties(map_data)) {
   boundary <- match.arg(boundary)
   boundary_view <- if (boundary == "county") "County" else "District"
 
@@ -91,8 +93,7 @@ county_district_map_dashboard <- function(map_data, pal_county, boundary = c("co
   # ==== Constructing the Map ====
 
   map <-leaflet(map_data, options = leafletOptions(minZoom = 5, maxZoom = 9)) |>
-    setView(lng = -94.5, lat = 46.5, zoom = 6) |>
-    setMaxBounds(-105, 40, -84, 52) |>
+    apply_map_view(map_view) |>
     addProviderTiles("Esri.WorldTopoMap") |>
     addPolygons(
       fillColor = ~ pal_county(full_vax_pct),
