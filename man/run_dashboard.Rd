@@ -6,16 +6,19 @@
 \usage{
 run_dashboard(
   data_dir = "App Data",
-  config = system.file("config", "measles_mn.R", package = "epiviewVPD"),
+  config = system.file("config", "template.R", package = "epiviewVPD"),
   ...
 )
 }
 \arguments{
 \item{data_dir}{Folder that holds the dashboard's data files.}
 
-\item{config}{Settings file: wording, links, logos and other
-text shown in the dashboard. Defaults to the Minnesota measles
-settings that come with the package.}
+\item{config}{Settings file: wording, links, logos, case studies,
+footnotes and map view. Defaults to the neutral template that comes
+with the package (\code{system.file("config", "template.R", package = "epiviewVPD")}), which names no state or organization; copy and edit
+it to make your own. Logo and case study files it names are looked
+for next to the settings file. The Minnesota settings are a filled-in
+example: \code{system.file("config", "measles_mn.R", package = "epiviewVPD")}.}
 
 \item{...}{Passed on to \code{\link[shiny:shinyApp]{shiny::shinyApp()}} as \code{options}, such as
 \code{port} or \code{launch.browser}.}

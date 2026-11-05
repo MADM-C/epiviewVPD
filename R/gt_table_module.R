@@ -45,6 +45,10 @@
 #   Standard counties object; its county_name values are the table's
 #   county list.
 #
+# notes
+#   Footnotes about the data, from the settings file (dashboard_settings.R);
+#   notes$nonreporting_table goes under the school coverage tables.
+#
 # Reactive Inputs Used
 # --------------------
 # input$table_type
@@ -98,7 +102,8 @@ gtServer <- function(input, output, session,
                      format_vax_pct,
                      cases,
                      counties,
-                     districts = NULL) {
+                     districts = NULL,
+                     notes = DEFAULT_SETTINGS$notes) {
   # ---------- Build School Table (with demographics) ----------
 
   district_data <- build_district_lookup(districts)
@@ -238,7 +243,8 @@ gtServer <- function(input, output, session,
       input$table_type,
       input$gt_boundary_type,
       input$gt_selected_county,
-      input$gt_selected_district
+      input$gt_selected_district,
+      nonreporting_note = notes$nonreporting_table
     )
   })
 
@@ -285,7 +291,8 @@ gtServer <- function(input, output, session,
         boundary_type = input$gt_boundary_type,
         county = input$gt_selected_county,
         district = input$gt_selected_district,
-        gt_sort_by = input$gt_sort_by
+        gt_sort_by = input$gt_sort_by,
+        nonreporting_note = notes$nonreporting_table
       )
 
       # Render the report

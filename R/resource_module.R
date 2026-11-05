@@ -2,30 +2,22 @@
 # RESOURCE MODULE
 # ============================================================
 
-# This module contains code so that users can download the case
-# studies that appear on the Resources tab.
+# Downloads for the case studies listed on the Resources tab.
+#
+# Input:  case_studies from the settings, prepared by run_dashboard()
+#         (settings_files.R): each a list with label, file and path
+# Output: one download per case study, with the ids the Resources tab
+#         uses (case_study_id() in app_ui.R); the downloaded file keeps
+#         its own file name
 
-resourceServer <- function(input, output, session){
-
-  output$download_cs1 <-
-    downloadHandler(
-      filename = "Midwest EpiView MMR Measles - Case Study 1.pdf",
-      content = function(file) {
-        file.copy(system.file("app", "www", "Midwest EpiView MMR Measles - Case Study 1.pdf", package = "epiviewVPD"), file)
-      }
-    )
-  output$download_cs2 <-
-    downloadHandler(
-      filename = "Midwest EpiView MMR Measles - Case Study 2.pdf",
-      content = function(file) {
-        file.copy(system.file("app", "www", "Midwest EpiView MMR Measles - Case Study 2.pdf", package = "epiviewVPD"), file)
-      }
-    )
-  output$download_cs3 <-
-    downloadHandler(
-      filename = "Midwest EpiView MMR Measles - Case Study 3.pdf",
-      content = function(file) {
-        file.copy(system.file("app", "www", "Midwest EpiView MMR Measles - Case Study 3.pdf", package = "epiviewVPD"), file)
-      }
-    )
+resourceServer <- function(input, output, session, case_studies = list()) {
+  for (i in seq_along(case_studies)) {
+    local({
+      path <- case_studies[[i]]$path
+      output[[case_study_id(i)]] <- downloadHandler(
+        filename = basename(path),
+        content = function(file) file.copy(path, file)
+      )
+    })
+  }
 }

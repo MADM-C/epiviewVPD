@@ -2,10 +2,7 @@ list(
   app = list(
     title = "Midwest EpiView: MMR Coverage and Measles",
     last_updated = "July 29th, 2026",
-    ga_id = "G-J8J0W26N3B",
-    banner_logo = "UMN_horizontal-reversed-digital.svg",
-    navbar_logo = "madmc_logo.png",
-    footer_logo = "umn_logo.png"
+    navbar_logo = "madmc_logo.png"
   ),
   org = list(
     name = "Midwest Analytics and Disease Modeling Center (MADMC)",
@@ -17,6 +14,19 @@ list(
   proximity = list(
     default_threshold = 85,
     address_placeholder = "e.g. 100 Church St SE, Minneapolis, MN, 55455"
+  ),
+  # Starting view for the maps. Leave `map` out to fit the maps to the
+  # county boundaries.
+  map = list(
+    center = c(lng = -94.5, lat = 46.5),
+    zoom = 6,
+    max_bounds = c(-105, 40, -84, 52)
+  ),
+  # Footnotes about where the data come from. NULL (or leaving one out)
+  # removes a note; see R/dashboard_settings.R for the neutral defaults.
+  notes = list(
+    nonreporting_school = "MMR vaccination coverage is unavailable for schools that did not report data to MDH.",
+    nonreporting_table = "Schools that did not report MMR vaccination coverage to MDH are not displayed."
   ),
   labels = list(
     coverage_outcome = "MMR Vaccine Coverage",
@@ -50,7 +60,6 @@ list(
   ),
   data_notes = c(
     "Vaccination rates reflect annual school and child care immunization data reported to MDH and may be incomplete for certain facilities or counties.",
-    "Enrollment counts may differ between Minnesota Department of Education and Minnesota Department of Health records. These discrepancies are due to the timing of enrollment snapshots and differences in whether schools with the same name are split or aggregated across grade levels (e.g., elementary, middle, and high school campuses).",
     "Geospatial layers were sourced from the Minnesota Geospatial Commons.",
     "To protect privacy, data blurring standards were used. Data blurring involves reporting a range of vaccination coverage rather than a precise percentage. For example, schools or school districts that report all or almost all of their students being fully vaccinated have vaccination rates displayed as >95% or >98%. The range reported depends on the number of students enrolled in the school or school district. Data blurring is used to limit sharing private health information on individuals."
   ),
@@ -91,11 +100,12 @@ list(
       answer = "The data in the tool will be updated once a year, in the spring."
     )
   ),
-  # output_id values must match the downloadHandler outputs defined in the server.
+  # Case study downloads: a label and a file each. Files are looked for
+  # next to this settings file, then among the package's own files.
   case_studies = list(
-    list(output_id = "download_cs1", label = "Targeting Measles Vaccine Outreach"),
-    list(output_id = "download_cs2", label = "Clinic and School Partnership Opportunities to Increase MMR Coverage"),
-    list(output_id = "download_cs3", label = "Presenting a Measles Outreach Plan to a County Board")
+    list(label = "Targeting Measles Vaccine Outreach", file = "Midwest EpiView MMR Measles - Case Study 1.pdf"),
+    list(label = "Clinic and School Partnership Opportunities to Increase MMR Coverage", file = "Midwest EpiView MMR Measles - Case Study 2.pdf"),
+    list(label = "Presenting a Measles Outreach Plan to a County Board", file = "Midwest EpiView MMR Measles - Case Study 3.pdf")
   ),
   resource_links = list(
     list(label = "Measles Basics", url = "https://www.health.state.mn.us/diseases/measles/basics.html"),

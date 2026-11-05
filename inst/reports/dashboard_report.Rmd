@@ -12,6 +12,7 @@ params:
   county_data: NULL
   grade_data: NULL
   selected_school_id: NULL
+  map_view: NULL
 ---
 <style>
 /* Document Width */
@@ -239,12 +240,13 @@ cat('<style> .leaflet-container { background: #FFF; } </style>')
       }
     )
 
-# bring in statewide plot
+# bring in statewide plot (same starting view as the dashboard's map)
+report_map_view <- if (is.null(params$map_view)) map_view_from_counties(county_data) else params$map_view
 is_district_mode <- !is.null(boundary) && boundary %in% c("district")
 if (is_district_mode && !is.null(district_data)) {
-      county_district_map_dashboard(district_data, county_palette(county_data$full_vax_pct_num), "district")
+      county_district_map_dashboard(district_data, county_palette(county_data$full_vax_pct_num), "district", report_map_view)
   } else {
-    county_district_map_dashboard(county_data, county_palette(county_data$full_vax_pct_num), "county")
+    county_district_map_dashboard(county_data, county_palette(county_data$full_vax_pct_num), "county", report_map_view)
   }
 
 ```

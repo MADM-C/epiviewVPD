@@ -29,13 +29,20 @@
 # StatewideCasesServer()→ historical measles cases on statewide map
 # resourceServer()      → dashboard resources
 #
-# Input:  app_data, the standard app data returned by load_app_data()
+# Input:  app_data, the standard app data returned by load_app_data();
+#         dashboard_config, the settings from read_dashboard_settings()
 # Output: the server function passed to shinyApp() in run_dashboard()
 # ============================================================
 
-app_server <- function(app_data) {
+app_server <- function(app_data, dashboard_config) {
   # ==== Color Palette ====
   pal_county <- county_palette(app_data$counties$full_vax_pct_num)
+
+  # ==== Settings used by the modules ====
+  # Starting view for the maps (settings `map`, or fit to the counties)
+  map_view <- dashboard_map_view(dashboard_config$map, app_data$counties)
+  # Footnotes about the data (settings `notes`)
+  notes <- dashboard_config$notes
 
   # ==== Server ====
   function(input, output, session) {
@@ -109,7 +116,8 @@ app_server <- function(app_data) {
       session = session,
       counties = app_data$counties,
       pal_county = pal_county,
-      districts = app_data$districts
+      districts = app_data$districts,
+      map_view = map_view
     )
 
     # === Submap ====
@@ -138,7 +146,9 @@ app_server <- function(app_data) {
       grades = app_data$grades,
       format_vax_pct = format_vax_pct,
       counties = app_data$counties,
-      districts = app_data$districts
+      districts = app_data$districts,
+      notes = notes,
+      map_view = map_view
     )
 
     # ==== GT Table Tab ====
@@ -153,7 +163,8 @@ app_server <- function(app_data) {
       counties = app_data$counties,
       cases = app_data$cases,
       format_vax_pct = format_vax_pct,
-      districts = app_data$districts
+      districts = app_data$districts,
+      notes = notes
     )
 
     # ==== Measles Outbreak Tab ====
@@ -166,6 +177,7 @@ app_server <- function(app_data) {
       counties = reactive(app_data$counties),
       healthcare_center_data = reactive(app_data$healthcare_centers),
       districts = app_data$districts,
+      map_view = map_view,
       output = output,
       input = input,
       session = session
@@ -186,7 +198,8 @@ app_server <- function(app_data) {
       output = output,
       session = session,
       cases = app_data$cases,
-      counties = app_data$counties
+      counties = app_data$counties,
+      map_view = map_view
     )
 
     # === Resources ===
@@ -195,7 +208,8 @@ app_server <- function(app_data) {
     resourceServer(
       input = input,
       output = output,
-      session = session
+      session = session,
+      case_studies = dashboard_config$case_studies
     )
 
   }

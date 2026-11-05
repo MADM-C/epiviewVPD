@@ -11,6 +11,7 @@ params:
   county: NULL
   district: NULL
   gt_sort_by: NULL
+  nonreporting_note: NULL
 ---
 
 ```{css, echo=FALSE}
@@ -338,9 +339,6 @@ if (nrow(filtered_data) > 0 && params$table_type %in% c(
           type             = "School Type",
           full_vax_pct     = "MMR %",
           total_enrollment = "Enrollment"
-        ) %>%
-        gt::tab_source_note(
-          source_note = "Schools that did not report MMR vaccination coverage to MDH are not displayed."
         )
     } else {
       table_gt <- table_gt %>%
@@ -350,10 +348,12 @@ if (nrow(filtered_data) > 0 && params$table_type %in% c(
           type             = "School Type",
           full_vax_pct     = "MMR %",
           total_enrollment = "Enrollment"
-        ) %>%
-        gt::tab_source_note(
-          source_note = "Schools that did not report MMR vaccination coverage to MDH are not displayed."
         )
+    }
+    # Source note from the dashboard settings (notes$nonreporting_table)
+    if (!is.null(params$nonreporting_note)) {
+      table_gt <- table_gt %>%
+        gt::tab_source_note(source_note = params$nonreporting_note)
     }
   } else if (params$table_type == "Child Care Vaccine Coverage") {
     table_gt <- table_gt %>%

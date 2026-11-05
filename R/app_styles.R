@@ -2,12 +2,12 @@ app_styles <- tags$head(tags$style(HTML("
   /* Selectors that compete with Bootstrap defaults (.well, a:hover) are doubled
      or list their :hover/:focus states so they win regardless of load order. */
 
-  .umn-banner {
+  .top-banner {
     width: 100%;
-    background-color: #7A0019;
+    background-color: #2F3B4C;
     padding: 6px 24px;
   }
-  .umn-banner img {
+  .top-banner img {
     height: 30px;
   }
 
@@ -232,5 +232,5 @@ app_styles <- tags$head(tags$style(HTML("
     margin-top: 10px;
     font-style: italic;
   }
-  
+
 ")))

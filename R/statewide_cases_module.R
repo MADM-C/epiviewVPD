@@ -11,10 +11,12 @@
 # comparison across counties.
 #
 # Inputs: cases and counties from the standard app data
-# (load_app_data.R), joined on county_name.
+# (load_app_data.R), joined on county_name; map_view, the starting
+# view for the map (map_view.R).
 # ============================================================
 
-StatewideCasesServer <- function(input, output, session, cases, counties) {
+StatewideCasesServer <- function(input, output, session, cases, counties,
+                                 map_view = map_view_from_counties(counties)) {
 
   output$statewide_map <- renderLeaflet({
     # ---- filter cases ----
@@ -47,8 +49,7 @@ StatewideCasesServer <- function(input, output, session, cases, counties) {
       counties,
       options = leafletOptions(minZoom = 5, maxZoom = 9)
     ) |>
-      setView(lng = -94.5, lat = 46.5, zoom = 6) |>
-      setMaxBounds(-105, 40, -84, 52) |>
+      apply_map_view(map_view) |>
       addProviderTiles("Esri.WorldTopoMap") |>
       # county boundaries
       addPolygons(

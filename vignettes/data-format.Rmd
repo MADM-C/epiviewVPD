@@ -121,7 +121,7 @@ One polygon per county, with a `county_name` property. Every county in
 | `address` | Optional | Street address |
 | `county_name` | Optional | If left out, the county is worked out from the coordinates |
 | `district_id` | Optional | The school's district, as in `districts.csv`. Leave it blank for schools outside any district |
-| `contact_info` | Optional | Contacts to show, such as `Health office: name@school.org` |
+| `contact_info` | Optional | Contact email to show, such as `name@school.org` |
 | `home_languages` | Optional | Most common home languages in the school's district (for charter schools, in the school), comma-separated |
 
 ## `grades.csv`

@@ -31,6 +31,9 @@
 #   Color palette function used to shade counties according to MMR
 #   vaccination coverage.
 #
+# map_view
+#   Starting view for the map (map_view.R).
+#
 # Reactive Inputs Used
 # --------------------
 # input$show_cases
@@ -66,16 +69,17 @@
 # ============================================================
 
 
-countyMapServer <- function(input, output, session, counties, pal_county, districts = NULL) {
+countyMapServer <- function(input, output, session, counties, pal_county, districts = NULL,
+                            map_view = map_view_from_counties(counties)) {
 
   # === County-level OR District-Level Leaflet Map ===
   output$county_map <- renderLeaflet({
     is_district_mode <- !is.null(input$boundary_type) && input$boundary_type == "district"
 
     if (is_district_mode && !is.null(districts)) {
-      county_district_map_dashboard(districts, pal_county, "district")
+      county_district_map_dashboard(districts, pal_county, "district", map_view)
     } else {
-      county_district_map_dashboard(counties, pal_county, "county")
+      county_district_map_dashboard(counties, pal_county, "county", map_view)
     }
   })
 

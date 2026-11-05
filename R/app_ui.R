@@ -1,12 +1,12 @@
 # ============================================================
-# USER INTERFACE (UI) – MIDWEST EPIVIEW: MEASLES DASHBOARD
+# USER INTERFACE (UI) – EPIVIEW VPD DASHBOARD
 # ============================================================
 # Purpose
 # -------
-# This file defines the full user interface for the Midwest
-# EpiView: Measles dashboard. It structures the layout of the
-# application, organizes navigation across tabs, and creates
-# reusable UI components used throughout the app.
+# This file defines the full user interface for the dashboard.
+# It structures the layout of the application, organizes
+# navigation across tabs, and creates reusable UI components
+# used throughout the app.
 #
 # The UI is responsible only for layout and display elements.
 # All data processing, mapping logic, and reactive behavior are
@@ -15,8 +15,52 @@
 # Input: dashboard_config, the settings list read in run_dashboard()
 # (default: inst/config/measles_mn.R).
 #
-# Images and logos are stored in inst/app/www and referenced with the
-# "epiview-assets/" prefix, which run_dashboard() sets up.
+# Logo addresses come from settings$logo_urls, which run_dashboard() adds
+# (settings_files.R): the package's own images are served from
+# "epiview-assets/", a state's own logos from "settings-files/".
+#
+# Optional settings (logos, org, funding, last_updated, and the
+# Resources tab's faq, case_studies, resource_links and tool_guide)
+# are left off the page when they are NULL or empty.
+
+# Address of a logo ("banner", "navbar" or "footer"), or NULL for none.
+# Without logo_urls (settings not prepared by run_dashboard()), the file
+# name is taken as one of the package's images.
+logo_src <- function(settings, which) {
+  if (!is.null(settings$logo_urls)) return(settings$logo_urls[[which]])
+  file <- settings$app[[paste0(which, "_logo")]]
+  if (!is.null(file) && nzchar(file)) file.path("epiview-assets", file)
+}
+
+# Logo image, or nothing when there is no address
+logo_img <- function(src, ...) {
+  if (!is.null(src)) tags$img(src = src, ...)
+}
+
+# Download button id for the i-th case study (resourceServer() makes the
+# matching download)
+case_study_id <- function(i) paste0("download_cs", i)
+
+# Contact paragraph for the footers, from the settings' org entry
+# (name, url, email); NULL when there is no org name
+contact_paragraph <- function(org) {
+  if (is.null(org$name)) return(NULL)
+  if (!is.null(org$url) && !is.null(org$email)) {
+    return(sprintf(
+      "<strong>Contact</strong><br>
+    This dashboard was created by the
+    <a href='%s' target='_blank'>%s</a>.
+    For questions or more information, please contact
+    <a href='mailto:%s'>%s</a>.",
+      org$url, org$name, org$email, org$email
+    ))
+  }
+  creator <- if (is.null(org$url)) org$name else sprintf("<a href='%s' target='_blank'>%s</a>", org$url, org$name)
+  paste0(
+    "<strong>Contact</strong><br>This dashboard was created by ", creator, ".",
+    if (!is.null(org$email)) sprintf(" For questions or more information, please contact <a href='mailto:%s'>%s</a>.", org$email, org$email)
+  )
+}
 
 app_ui <- function(dashboard_config) {
   # === First Two Tabs Intro Paragraph ===
@@ -77,41 +121,38 @@ app_ui <- function(dashboard_config) {
     tags$p(HTML(dashboard_config$text$resources_intro))
   )
 
-  contact_html <- sprintf(
-    "<strong>Contact</strong><br>
-    This dashboard was created by the
-    <a href='%s' target='_blank'>%s</a>.
-    For questions or more information, please contact
-    <a href='mailto:%s'>%s</a>.",
-    dashboard_config$org$url, dashboard_config$org$name, dashboard_config$org$email, dashboard_config$org$email
-  )
+  contact_html <- contact_paragraph(dashboard_config$org)
+  funding_html <- if (!is.null(dashboard_config$funding)) paste0("<strong>Funding</strong><br>", dashboard_config$funding)
+  footer_text <- c(funding_html, contact_html)
 
   # === Shared Footer (Documentation + Logos) ===
   footer_block <- tags$div(
     class = "footer footer-main",
     tags$div(
       class = "footer-text",
-      HTML(paste0("<strong>Funding</strong><br>", dashboard_config$funding, "<br><br>", contact_html))
+      if (length(footer_text)) HTML(paste(footer_text, collapse = "<br><br>"))
     ),
     tags$div(
       class = "footer-logos",
-      tags$img(src = file.path("epiview-assets", dashboard_config$app$footer_logo))
+      logo_img(logo_src(dashboard_config, "footer"))
     ),
-    tags$p(
-      class = "footer-updated",
-      paste("Last updated:", dashboard_config$app$last_updated)
-    )
+    if (!is.null(dashboard_config$app$last_updated)) {
+      tags$p(
+        class = "footer-updated",
+        paste("Last updated:", dashboard_config$app$last_updated)
+      )
+    }
   )
 
   resource_footer <- tags$div(
     class = "footer footer-resources",
     tags$div(
       class = "footer-text",
-      HTML(contact_html)
+      if (!is.null(contact_html)) HTML(contact_html)
     ),
     tags$div(
       class = "footer-logos",
-      tags$img(src = file.path("epiview-assets", dashboard_config$app$footer_logo))
+      logo_img(logo_src(dashboard_config, "footer"))
     )
   )
 
@@ -125,26 +166,32 @@ app_ui <- function(dashboard_config) {
     collapse = "&nbsp; "
   )
 
+  ga_id <- dashboard_config$app$ga_id
+
   tagList(
-    # --- Google Analytics Tag ---
-    tags$head(
-      tags$script(async = NA, src = paste0("https://www.googletagmanager.com/gtag/js?id=", dashboard_config$app$ga_id)),
-      tags$script(HTML(sprintf("
+    # --- Google Analytics Tag (only when the settings give an ID) ---
+    if (!is.null(ga_id) && nzchar(ga_id)) {
+      tags$head(
+        tags$script(async = NA, src = paste0("https://www.googletagmanager.com/gtag/js?id=", ga_id)),
+        tags$script(HTML(sprintf("
         window.dataLayer = window.dataLayer || [];
         function gtag(){dataLayer.push(arguments);}
         gtag('js', new Date());
         gtag('config', '%s');
-      ", dashboard_config$app$ga_id)))
-    ),
+      ", ga_id)))
+      )
+    },
 
-    # --- UMN Branding Banner ---
-    tags$div(
-      class = "umn-banner",
-      tags$img(src = file.path("epiview-assets", dashboard_config$app$banner_logo))
-    ),
+    # --- Branding banner (settings app$banner_logo) ---
+    if (!is.null(logo_src(dashboard_config, "banner"))) {
+      tags$div(
+        class = "top-banner",
+        logo_img(logo_src(dashboard_config, "banner"))
+      )
+    },
     navbarPage(
       title = div(
-        tags$img(src = file.path("epiview-assets", dashboard_config$app$navbar_logo), class = "navbar-logo"),
+        logo_img(logo_src(dashboard_config, "navbar"), class = "navbar-logo"),
         span(dashboard_config$app$title, class = "navbar-title")
       ),
       header = app_styles,
@@ -460,39 +507,55 @@ app_ui <- function(dashboard_config) {
         "Resources",
         fluidPage(
           resources_intro,
-          h3("Frequently Asked Questions"),
-          tags$div(
-            lapply(dashboard_config$faq, function(item) {
-              tags$details(
-                tags$summary(tags$strong(item$question)),
-                p(HTML(item$answer))
+          if (length(dashboard_config$faq)) {
+            tagList(
+              h3("Frequently Asked Questions"),
+              tags$div(
+                lapply(dashboard_config$faq, function(item) {
+                  tags$details(
+                    tags$summary(tags$strong(item$question)),
+                    p(HTML(item$answer))
+                  )
+                })
               )
-            })
-          ),
-          h3("Case Studies: Using the Dashboard in Your Work"),
-          fluidRow(
-            lapply(dashboard_config$case_studies, function(cs) {
-              column(4, wellPanel(
-                class = "resource-card",
-                downloadLink(outputId = cs$output_id, label = cs$label)
-              ))
-            })
-          ),
-          h3(dashboard_config$labels$resource_links_heading),
-          fluidRow(
-            lapply(dashboard_config$resource_links, function(link) {
-              column(4, wellPanel(
-                class = "resource-card",
-                tags$div(
-                  tags$a(href = link$url, target = "_blank", link$label)
-                )
-              ))
-            })
-          ),
-          h3(dashboard_config$labels$tool_guide_heading),
-          tags$div(
-            HTML(dashboard_config$text$tool_guide)
-          )
+            )
+          },
+          if (length(dashboard_config$case_studies)) {
+            tagList(
+              h3("Case Studies: Using the Dashboard in Your Work"),
+              fluidRow(
+                lapply(seq_along(dashboard_config$case_studies), function(i) {
+                  column(4, wellPanel(
+                    class = "resource-card",
+                    downloadLink(outputId = case_study_id(i), label = dashboard_config$case_studies[[i]]$label)
+                  ))
+                })
+              )
+            )
+          },
+          if (length(dashboard_config$resource_links)) {
+            tagList(
+              h3(dashboard_config$labels$resource_links_heading),
+              fluidRow(
+                lapply(dashboard_config$resource_links, function(link) {
+                  column(4, wellPanel(
+                    class = "resource-card",
+                    tags$div(
+                      tags$a(href = link$url, target = "_blank", link$label)
+                    )
+                  ))
+                })
+              )
+            )
+          },
+          if (!is.null(dashboard_config$text$tool_guide)) {
+            tagList(
+              h3(dashboard_config$labels$tool_guide_heading),
+              tags$div(
+                HTML(dashboard_config$text$tool_guide)
+              )
+            )
+          }
         ),
         tags$hr(),
         resource_footer
