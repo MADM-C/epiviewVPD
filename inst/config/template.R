@@ -11,9 +11,12 @@
 # This is also the dashboard's default when no settings file is given.
 # The wording here is neutral (no state, agency or organization named),
 # so the dashboard runs as-is. Lines marked "CHANGE" are the ones most
-# states will want to fill in. Anything set to NULL, or left out, is
-# hidden. Logos and case study files go in the same folder as your
-# settings file. inst/config/measles_mn.R shows a filled-in example.
+# states will want to fill in. Anything set to NULL is hidden (keep the
+# line and write NULL). A line you delete gets the value written here;
+# lists without names (faq, definitions, data_notes, case_studies, ...)
+# are replaced as a whole, so list every entry you want.
+# Logos and case study files go in the same folder as your settings
+# file. inst/config/measles_mn.R shows a filled-in example.
 # ============================================================
 
 list(
@@ -42,12 +45,36 @@ list(
   ),
   # Starting view for the maps. Leave `map` out (as here) to fit the maps
   # to your county boundaries, or set e.g.
-  #   map = list(center = c(lng = -94.5, lat = 46.5), zoom = 6,
-  #              max_bounds = c(-105, 40, -84, 52)),
+  #   map = list(center = c(lng = -98.6, lat = 39.8), zoom = 6,
+  #              max_bounds = c(-105, 35, -92, 45)),
+  # center (longitude and latitude, named lng and lat) and zoom go
+  # together. max_bounds (west, south, east, north) limits how far the
+  # maps can be moved; on its own it keeps the fit to your counties.
   # Footnotes about where the data come from; NULL removes a note.
+  # CHANGE: describe your own suppression rules (e.g. "fewer than 10
+  # students"). For an internal dashboard with exact numbers, set the
+  # redacted*/blurred notes to NULL.
+  # An `enrollment` note (how enrollment was counted) can be added here
+  # too, e.g. enrollment = "Enrollment is as of October 1."; enrollment
+  # labels then get a "*" pointing to it.
   notes = list(
     nonreporting_school = "MMR vaccination coverage is unavailable for schools that did not report coverage data.",
-    nonreporting_table = "Schools that did not report MMR vaccination coverage are not displayed."
+    nonreporting_table = "Schools that did not report MMR vaccination coverage are not displayed.",
+    redacted = "Redacted values were withheld to protect privacy.",
+    blurred = "Blurred values (e.g., '>95%') are shown as a range to protect privacy.",
+    redacted_grades = "Grade-level vaccination data are redacted to protect privacy.",
+    redacted_childcares = "MMR coverage is not displayed for child cares whose data were withheld to protect privacy."
+  ),
+  # CHANGE: how withheld values appear in your data.
+  #   redacted_codes: values that mean "withheld", besides a blank cell,
+  #     e.g. c("*", "S", "suppressed"); they are treated as blank.
+  #   blurred_offset: a blurred value such as ">95" or "<5" counts as its
+  #     number plus (for ">") or minus (for "<") this on the county and
+  #     district maps' colors and in district coverage.
+  #   suppression = NULL means exact numbers: no codes, offset 0.
+  suppression = list(
+    redacted_codes = character(0),
+    blurred_offset = 1
   ),
   labels = list(
     coverage_outcome = "MMR Vaccine Coverage",
@@ -60,7 +87,7 @@ list(
     tool_guide_heading = "Comparative Guide to Measles Analytic Tools"
   ),
   text = list(
-    # CHANGE: link to your health department's measles page
+    # CHANGE: the highlighted introduction at the top of the About tab
     about_callout = "Measles is a highly contagious respiratory disease that can cause serious complications, including hospitalization and death. The measles, mumps, and rubella (MMR) vaccine is highly effective at preventing infection and is the best way to prevent illness from measles. Because measles spreads so easily, at least 95% of the population needs to be vaccinated to prevent outbreaks and protect communities.",
     # CHANGE: name your data sources and the years they cover
     about_body = "This dashboard displays school and child care immunization data and historical measles case data. Vaccination data is reported for child cares, schools, and grade-levels when available. The K-12 MMR coverage is the percent of students with 2 doses of MMR vaccine and the child care MMR coverage rate is the percent of children with 1 dose of MMR. Data may be incomplete for some locations.",
