@@ -14,6 +14,7 @@ params:
   nonreporting_note: NULL
   redacted_childcares_note: NULL
   coverage_bands: NULL
+  case_age_groups: NULL
 ---
 
 ```{css, echo=FALSE}
@@ -137,96 +138,9 @@ if (nrow(filtered_data) == 0) {
     }
   ))
 } else if (params$table_type == "Historical Measles Cases") {
-  # Define all age groups that should always appear
-  all_age_groups <- c("0–4", "5–11", "12–19", "20–49", "50+", "Unknown")
-
-  wide_cases <- filtered_data %>%
-    mutate(
-      county = as.character(county), # <- ensures statewide survives
-      age_group = gsub("-", "–", age_group),
-      age_group = factor(age_group, levels = all_age_groups, ordered = TRUE)
-    ) %>%
-    # ---- EXPAND to include all age groups for every county-year ----
-    tidyr::complete(
-      county,
-      year,
-      age_group = all_age_groups,
-      fill = list(n_cases = 0)
-    ) %>%
-    group_by(county, year, age_group) %>%
-    summarise(total_cases = sum(n_cases, na.rm = TRUE), .groups = "drop") %>%
-    # Pivot wider to table format
-    tidyr::pivot_wider(
-      names_from  = age_group,
-      values_from = total_cases,
-      values_fill = 0
-    ) %>%
-    arrange(year) %>%
-    # Reorder columns so they always appear in same order
-    select(
-      county,
-      year,
-      all_of(all_age_groups[all_age_groups %in% names(.)])
-    )
-
-  return(
-    wide_cases %>%
-      gt::gt() %>%
-      gt::tab_header(
-        title = if (params$county == "Statewide") {
-          "Measles Cases by Year and Age Group"
-        } else {
-          paste("Measles Cases by Year and Age Group: County of", params$county)
-        }
-      ) %>%
-      gt::tab_style(
-        style = gt::cell_text(
-          color = "#1E3A66",
-          weight = "bold",
-          size = "large"
-        ),
-        locations = gt::cells_title(groups = "title")
-      ) %>%
-      gt::cols_label(
-        county = "County",
-        year = "Year",
-        `0–4` = "0–4 Years",
-        `5–11` = "5–11 Years",
-        `12–19` = "12–19 Years",
-        `20–49` = "20–49 Years",
-        `50+` = "50+ Years",
-        Unknown = "Unknown"
-      ) %>%
-      gt::fmt_number(columns = -c(county, year), decimals = 0) %>%
-      gt::cols_align(
-        align = "center",
-        columns = -c(county)
-      ) %>%
-      gt::data_color(
-        columns = -c(county, year),
-        colors = scales::col_numeric(
-          palette = c("#FFF9E6", "#F9C941", "#1E3A66"),
-          domain = c(0, max(wide_cases[, -c(1, 2)], na.rm = TRUE))
-        )
-      ) %>%
-      gt::tab_style(
-        style = gt::cell_text(weight = "bold", color = "#1E3A66"),
-        locations = gt::cells_column_labels(gt::everything())
-      ) %>%
-      gt::tab_options(
-        table.width = gt::px(850),
-        heading.align = "left",
-        column_labels.background.color = "#F4E2A1",
-        column_labels.font.weight = "bold",
-        table.border.top.color = "#1E3A66",
-        table.border.bottom.color = "#1E3A66",
-        row.striping.background_color = "#FAFAFA",
-
-        # Compact layout (these are safe)
-        data_row.padding = gt::px(3),
-        row_group.padding = gt::px(2)
-      )
-  )
+  # Same table as the Summary tab (render_cases_gt(), table_measles_functions.R)
+  render_cases_gt(filtered_data, params$county,
+                  case_age_groups(params$case_age_groups, params$case_table$age_group))
 }
 ```
 

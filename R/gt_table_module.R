@@ -52,6 +52,9 @@
 # bands
 #   Coverage color bands from the settings (coverage_bands.R).
 #
+# age_groups
+#   Case age groups in display order (case_age_groups.R).
+#
 # Reactive Inputs Used
 # --------------------
 # input$table_type
@@ -107,7 +110,8 @@ gtServer <- function(input, output, session,
                      counties,
                      districts = NULL,
                      notes = default_settings()$notes,
-                     bands = coverage_bands()) {
+                     bands = coverage_bands(),
+                     age_groups = case_age_groups(NULL, cases$age_group)) {
   # ---------- Build School Table (with demographics) ----------
 
   district_data <- build_district_lookup(districts)
@@ -232,7 +236,7 @@ gtServer <- function(input, output, session,
     }
 
     if (input$table_type == "Historical Measles Cases") {
-      return(render_cases_gt(filtered_data, input$gt_selected_county))
+      return(render_cases_gt(filtered_data, input$gt_selected_county, age_groups))
     }
 
     sorted_data <- sort_coverage_table(
@@ -300,7 +304,8 @@ gtServer <- function(input, output, session,
         gt_sort_by = input$gt_sort_by,
         nonreporting_note = notes$nonreporting_table,
         redacted_childcares_note = notes$redacted_childcares,
-        coverage_bands = bands
+        coverage_bands = bands,
+        case_age_groups = age_groups
       )
 
       # Render the report

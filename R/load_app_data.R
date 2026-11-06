@@ -103,10 +103,13 @@ DATA_FILES <- list(
 #         blank in the count and percentage columns
 #         (both from the settings' suppression entry, dashboard_settings.R);
 #         geography = the settings' geography entry: state (for the Census
-#         boundaries), district_type, year
+#         boundaries), district_type, year;
+#         case_age_groups = the settings' case age groups; cases.csv may
+#         only use these (NULL: any, see case_age_groups.R)
 # Output: named list of app data objects (see top of file)
 load_app_data <- function(data_dir, suppressed_offset = 1, redacted_codes = character(0),
-                          geography = list(state = NULL, district_type = "unified", year = NULL)) {
+                          geography = list(state = NULL, district_type = "unified", year = NULL),
+                          case_age_groups = NULL) {
   if (!dir.exists(data_dir)) {
     stop("The data folder \"", data_dir, "\" doesn't exist.", call. = FALSE)
   }
@@ -158,6 +161,8 @@ load_app_data <- function(data_dir, suppressed_offset = 1, redacted_codes = char
   districts <- join_districts(raw$district_boundaries, raw$districts, problems)
 
   # --- cases ---
+  raw$cases$age_group <- trimws(raw$cases$age_group)
+  check_age_groups(raw$cases, case_age_groups, problems)
   cases <- add_counties(raw$cases, county_bounds, "cases.csv", problems)
   cases$year <- as.integer(cases$year)
   cases$n_cases <- as.integer(cases$n_cases)

@@ -39,6 +39,8 @@ app_server <- function(app_data, dashboard_config) {
   # Coverage cutoffs and colors (settings `coverage_bins`, coverage_bands.R)
   bands <- coverage_bands(dashboard_config$coverage_bins,
                           dashboard_config$suppression$blurred_offset)
+  # Case age groups (settings `case_age_groups`, or the data's; case_age_groups.R)
+  age_groups <- case_age_groups(dashboard_config$case_age_groups, app_data$cases$age_group)
   # Starting view for the maps (settings `map`, or fit to the counties)
   map_view <- dashboard_map_view(dashboard_config$map, app_data$counties)
   # Footnotes about the data (settings `notes`)
@@ -100,10 +102,7 @@ app_server <- function(app_data, dashboard_config) {
       updateSelectInput(
         session,
         "case_age_group",
-        choices = c(
-          "All Ages",
-          "0-4", "5-11", "12-19", "20-49", "50+"
-        ),
+        choices = c("All Ages", age_groups),
         selected = "All Ages"
       )
     })
@@ -167,7 +166,8 @@ app_server <- function(app_data, dashboard_config) {
       format_vax_pct = format_vax_pct,
       districts = app_data$districts,
       notes = notes,
-      bands = bands
+      bands = bands,
+      age_groups = age_groups
     )
 
     # ==== Measles Outbreak Tab ====

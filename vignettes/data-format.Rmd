@@ -180,7 +180,7 @@ Every district in `districts.csv` needs a Census boundary with the same
 | `county_name` | Required, or `county_fips` | County name, as the Census spells it |
 | `year` | Required | |
 | `n_cases` | Required | Cases in that county and year (and age group) |
-| `age_group` | Optional | One of `0-4`, `5-11`, `12-19`, `20-49`, `50+` or `Unknown`. Without it, only the "All Ages" view has cases |
+| `age_group` | Optional | The case's age group, as your state reports it (e.g. `0-4`, `5-17`, `Unknown`). To fix the groups and their order, list them in the settings' `case_age_groups`; otherwise the groups found here are used, sorted by their first number. Write them exactly as in the settings (a hyphen `0-4` and an en dash `0–4` are different groups) Without it, cases are shown for all ages only |
 
 ## `healthcare_centers.csv`
 
