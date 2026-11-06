@@ -13,7 +13,7 @@
 # implemented in the server-side modules.
 #
 # Input: dashboard_config, the settings list read in run_dashboard()
-# (default: inst/config/measles_mn.R).
+# (default: inst/config/template.R).
 #
 # Logo addresses come from settings$logo_urls, which run_dashboard() adds
 # (settings_files.R): the package's own images are served from

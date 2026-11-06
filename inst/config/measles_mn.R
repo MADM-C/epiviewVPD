@@ -22,11 +22,21 @@ list(
     zoom = 6,
     max_bounds = c(-105, 40, -84, 52)
   ),
-  # Footnotes about where the data come from. NULL (or leaving one out)
-  # removes a note; see R/dashboard_settings.R for the neutral defaults.
+  # Footnotes about where the data come from. Setting one to NULL removes
+  # it; leaving one out uses the template's wording (inst/config/template.R).
   notes = list(
     nonreporting_school = "MMR vaccination coverage is unavailable for schools that did not report data to MDH.",
-    nonreporting_table = "Schools that did not report MMR vaccination coverage to MDH are not displayed."
+    nonreporting_table = "Schools that did not report MMR vaccination coverage to MDH are not displayed.",
+    redacted = "Redacted indicates the number of eligible students was fewer than 10.",
+    blurred = "Blurred values (e.g., '>95%') are intentionally rounded up for privacy.",
+    redacted_grades = "Grade-level vaccination data are redacted because fewer than 10 students were enrolled in each grade.",
+    redacted_childcares = "MMR coverage is not displayed for facilities with fewer than 10 enrolled children."
+  ),
+  # How withheld values appear in the data: blank cells are redacted, and
+  # blurred values (">95", "<5") count as their number plus/minus 1.
+  suppression = list(
+    redacted_codes = character(0),
+    blurred_offset = 1
   ),
   labels = list(
     coverage_outcome = "MMR Vaccine Coverage",

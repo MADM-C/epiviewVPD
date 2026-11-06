@@ -7,7 +7,8 @@
 #
 # A view is either
 #   list(center = c(lng, lat), zoom = <number>, max_bounds = c(lng1, lat1, lng2, lat2))
-#     from the settings file's `map` entry, or
+#     from the settings file's `map` entry (checked and put in lng, lat
+#     order by check_settings() in dashboard_settings.R), or
 #   list(bounds = c(lng1, lat1, lng2, lat2), max_bounds = ...)
 #     from map_view_from_counties(), which fits the county boundaries.
 # max_bounds is optional in both.
@@ -27,10 +28,13 @@ map_view_from_counties <- function(counties) {
 }
 
 # Input:  settings map entry (or NULL) and the counties
-# Output: the view to use: the settings' one if given, else one that
-#         fits the counties
+# Output: the view to use: the settings' center and zoom if given, else
+#         one that fits the counties; the settings' max_bounds, if given,
+#         replace the panning limits
 dashboard_map_view <- function(map_settings, counties) {
-  if (is.null(map_settings)) map_view_from_counties(counties) else map_settings
+  view <- if (!is.null(map_settings$center)) map_settings else map_view_from_counties(counties)
+  if (!is.null(map_settings$max_bounds)) view$max_bounds <- map_settings$max_bounds
+  view
 }
 
 # Input:  a leaflet map, a view (see top of file), and whether to limit

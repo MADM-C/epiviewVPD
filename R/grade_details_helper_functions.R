@@ -3,28 +3,24 @@
 # ====================================================
 
 # ============================================================
-# HELPER: parse a vax percentage string to a numeric value.
-# Handles ">95", ">98", ">99" blurred strings and plain numbers.
-# Returns NA for redacted / unparseable values.
+# HELPER: parse a vax percentage string to a numeric value, for bar
+# lengths. A blurred value (">95", "<5") is drawn at its number; "87.3"
+# and "87.3%" give 87.3. Returns NA for redacted / unparseable values.
 # ============================================================
 
 parse_vax_num <- function(x) {
-  case_when(
-    grepl("^>\\s*95", x) ~ 95,
-    grepl("^>\\s*98", x) ~ 98,
-    grepl("^>\\s*99", x) ~ 99,
-    grepl("^<", x) ~ suppressWarnings(as.numeric(gsub("[^0-9.]", "", x))),
-    TRUE ~ suppressWarnings(as.numeric(x))
-  )
+  suppressWarnings(as.numeric(sub("%$", "", trimws(sub("^\\s*[<>]", "", x)))))
 }
 
 # ============================================================
-# HELPER: derive a bar fill color from a numeric coverage value.
+# HELPER: derive a bar fill color from a coverage value. Blurred values
+# are colored by the number they count as (pct_number(), load_app_data.R),
+# so ">95" counts as 96 (green) and ">80" as 81 (red), not always green.
 # ============================================================
 coverage_color <- function(value_raw, value_num) {
+  value_num <- ifelse(grepl("^\\s*[<>]", value_raw), pct_number(value_raw), value_num)
   case_when(
     is.na(value_raw) ~ "gray",
-    grepl("^>", value_raw) ~ "darkgreen",
     value_num < 85 ~ "red",
     value_num < 90 ~ "orange",
     value_num < 95 ~ "gold",

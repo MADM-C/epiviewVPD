@@ -34,7 +34,11 @@ run_dashboard <- function(data_dir = "App Data",
   shiny::addResourcePath("epiview-assets", system.file("app", "www", package = "epiviewVPD"))
   dashboard_config <- read_dashboard_settings(config) |>
     prepare_settings_files(dirname(normalizePath(config)))
-  app_data <- load_app_data(data_dir)
+  app_data <- load_app_data(
+    data_dir,
+    suppressed_offset = dashboard_config$suppression$blurred_offset,
+    redacted_codes = dashboard_config$suppression$redacted_codes
+  )
 
   shiny::shinyApp(
     ui = app_ui(dashboard_config),
