@@ -124,3 +124,54 @@ test_that("the data format guide lists every column the loader knows", {
     }
   }
 })
+
+# Example boundaries with made-up county FIPS codes added
+add_fips <- function(dir) {
+  path <- file.path(dir, "county_boundaries.geojson")
+  b <- sf::st_read(path, quiet = TRUE)
+  b$county_fips <- sprintf("99%03d", seq_len(nrow(b)))
+  file.remove(path)
+  sf::st_write(b, path, quiet = TRUE)
+  stats::setNames(b$county_fips, b$county_name)
+}
+
+test_that("counties are matched by county_fips first, then by name", {
+  base <- load_app_data(example_data_dir())
+  dir <- copy_example()
+  fips <- add_fips(dir)
+  # counties.csv by FIPS only; schools by FIPS with a misspelled name, which is ignored
+  edit_csv(dir, "counties.csv", function(x) { x$county_fips <- fips[x$county_name]; x$county_name <- NULL; x })
+  edit_csv(dir, "schools.csv", function(x) { x$county_fips <- fips[x$county_name]; x$county_name <- "Misspelled"; x })
+  d <- load_app_data(dir)
+  expect_equal(d$counties$county_name, base$counties$county_name)
+  expect_equal(d$counties$enroll, base$counties$enroll)
+  expect_equal(d$schools$county_name, base$schools$county_name)
+  expect_equal(unname(d$schools$county_fips), unname(fips[d$schools$county_name]))
+})
+
+test_that("unknown FIPS codes are reported, with a hint about leading zeros", {
+  dir <- copy_example()
+  fips <- add_fips(dir)
+  edit_csv(dir, "cases.csv", function(x) { x$county_fips <- fips[x$county_name]; x$county_fips[1] <- "9901"; x })
+  expect_match(load_error(dir), "cases.csv: 1 county_fips value\\(s\\) not in county_boundaries.geojson: 9901 \\(5 digits: keep leading zeros\\)")
+})
+
+test_that("without boundary files or a state, the message says what to do", {
+  dir <- copy_example()
+  file.remove(file.path(dir, "county_boundaries.geojson"))
+  expect_match(load_error(dir), "county_boundaries.geojson isn't in the data folder, and the settings don't name a state")
+})
+
+test_that("Census boundaries download with the columns the loader needs", {
+  skip_on_cran()
+  skip_if_offline("www2.census.gov")
+  problems <- new_problem_list()
+  counties <- download_boundaries("county_boundaries", list(state = "DE"), problems)
+  districts <- download_boundaries("district_boundaries", list(state = "DE"), problems)
+  expect_equal(problems$get(), character(0))
+  expect_setequal(counties$county_name, c("Kent", "New Castle", "Sussex"))
+  expect_true(all(nchar(counties$county_fips) == 5))
+  expect_true(sf::st_crs(counties) == sf::st_crs(4326))
+  expect_true(all(nchar(districts$district_id) == 7))
+  expect_match(boundary_source(counties), "Census county boundaries for DE")
+})

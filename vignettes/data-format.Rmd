@@ -7,9 +7,11 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
-The dashboard reads its data from one folder: CSV files with the
-coverage, cases and locations, and GeoJSON files with the county and
-school district boundaries. You start it with that folder:
+The dashboard reads its data from one folder of CSV files with the
+coverage, cases and locations. The county and school district boundaries
+are downloaded from the U.S. Census Bureau for the state named in your
+settings (`geography = list(state = "MN")`), so you don't supply any map
+files. You start it with your folder and settings:
 
 ```r
 library(epiviewVPD)
@@ -30,17 +32,15 @@ file.copy(list.files(example_data_dir(), full.names = TRUE), "my_data")
 | File | One row per | Used for |
 |------|-------------|----------|
 | `counties.csv` | county | County coverage map, statewide rate |
-| `county_boundaries.geojson` | county | County outlines |
 | `schools.csv` | school | School points, school details, Summary tables |
 | `grades.csv` | school and grade | Grade-level table and chart in school details |
 | `facilities.csv` | child care program | Child care points, details and tables |
 | `districts.csv` | school district | School district view of the map |
-| `district_boundaries.geojson` | school district | District outlines |
 | `cases.csv` | county and year (and age group) | Historical cases map and table |
 | `healthcare_centers.csv` | healthcare center | Healthcare centers on the proximity map |
 
-This version of the dashboard needs every file. Within a file, a column is
-either:
+This version of the dashboard needs every file in the table. Within a
+file, a column is either:
 
 - **Required**: the dashboard stops with a message naming the file and
   the column if it is missing.
@@ -73,16 +73,20 @@ columns in.
   0 is read as a real 0. If your data marks withheld values with a code
   such as `*`, list it in the settings' `suppression$redacted_codes`; it
   is then read as blank.
-- **Counties** are named without "County" (`"Clear Lake"`, not
-  `"Clear Lake County"`), spelled as in `county_boundaries.geojson`.
-  Upper and lower case don't matter; the dashboard uses the spelling in
-  the boundaries file.
+- **Counties**: give `county_fips`, the 5-digit state + county FIPS code
+  (`"27001"`), if you can. Where a row has no `county_fips`, the dashboard
+  uses `county_name`: the Census name without "County" (`"St. Louis"`, not
+  `"St. Louis County"`); upper and lower case don't matter. Either way,
+  the dashboard shows the Census spelling. FIPS codes are safer, because
+  names have to match the Census spelling.
 - **Coordinates** are decimal degrees (WGS 84, as from a GPS or a web
   map): `latitude` 44.97, `longitude` -93.26.
-- **Boundaries** are GeoJSON polygons with one property that names them
-  (`county_name` or `district_id`). Any coordinate system works; the
-  dashboard converts it. To write a boundary file from a shapefile in R:
-  `sf::st_write(sf::st_read("counties.shp"), "county_boundaries.geojson")`.
+- **Boundaries** come from the Census: county boundaries, and the
+  school districts of the type in your settings (`district_type`:
+  `"unified"` by default, or `"elementary"`/`"secondary"`). They are
+  downloaded the first time the dashboard starts and kept, so later starts
+  don't need the internet. See [Your own boundaries](#your-own-boundaries)
+  to use other boundaries instead.
 
 ## `counties.csv`
 
@@ -91,18 +95,15 @@ is colored by `full_vax_pct`.
 
 | Column | | Description |
 |--------|---|-------------|
-| `county_name` | Required | County name, as in `county_boundaries.geojson` |
+| `county_fips` | Required, or `county_name` | 5-digit county FIPS code |
+| `county_name` | Required, or `county_fips` | County name, as the Census spells it |
 | `enroll` | Required | Students enrolled |
 | `full_vax_pct` | Required | Percent fully vaccinated |
 | `full_vax` | Optional | Students fully vaccinated. With it, the map title shows the statewide rate: total `full_vax` over total `enroll` |
 | `students_of_color_pct` | Optional | Percent students of color, of the enrollment it was counted against; shown in the county pop-up |
 | `frl_eligible_pct` | Optional | Percent eligible for free or reduced-price meals, likewise; shown in the county pop-up |
 
-## `county_boundaries.geojson`
-
-One polygon per county, with a `county_name` property. Every county in
-`counties.csv` needs a boundary. A county with a boundary but no row in
-`counties.csv` is drawn without coverage.
+A county without a row in `counties.csv` is drawn without coverage.
 
 ## `schools.csv`
 
@@ -122,7 +123,8 @@ One polygon per county, with a `county_name` property. Every county in
 | `school_type` | Optional | Any label, such as `Public`, `Private`, `Charter`; shown in pop-ups and tables. For `Charter` schools the details say district coverage isn't available, and `home_languages` is labeled as the school's own |
 | `grade_range` | Optional | Grades taught, such as `K-5`; shown in the school pop-up |
 | `address` | Optional | Street address |
-| `county_name` | Optional | If left out, the county is worked out from the coordinates |
+| `county_fips` | Optional | 5-digit county FIPS code |
+| `county_name` | Optional | County name. If a school has neither, its county is worked out from its coordinates |
 | `district_id` | Optional | The school's district, as in `districts.csv`. Leave it blank for schools outside any district |
 | `contact_info` | Optional | Contact email to show, such as `name@school.org` |
 | `home_languages` | Optional | Most common home languages in the school's district (for charter schools, in the school), comma-separated |
@@ -154,28 +156,28 @@ Child care programs.
 | `full_vax_pct` | Required | Percent fully vaccinated, of `enroll_eligible` if given |
 | `full_vax` | Optional | Children fully vaccinated |
 | `enroll_eligible` | Optional | Children old enough for the vaccine |
-| `county_name` | Optional | If left out, the county is worked out from the coordinates |
+| `county_fips` | Optional | 5-digit county FIPS code |
+| `county_name` | Optional | County name. If a program has neither, its county is worked out from its coordinates |
 
 ## `districts.csv`
 
 | Column | | Description |
 |--------|---|-------------|
-| `district_id` | Required | Unique ID, as in `district_boundaries.geojson` and `schools.csv` |
+| `district_id` | Required | The district's 7-digit Census GEOID (state FIPS + NCES district ID, such as `"2703420"`); also used in `schools.csv` |
 | `district_name` | Required | Name shown in the dashboard |
 | `enroll` | Required | Students enrolled |
 | `full_vax_pct` | Required | Percent fully vaccinated |
 | `full_vax` | Optional | Students fully vaccinated |
 
-## `district_boundaries.geojson`
-
-One polygon per school district, with a `district_id` property. Every
-district in `districts.csv` needs a boundary.
+Every district in `districts.csv` needs a Census boundary with the same
+`district_id`. A district without a row is drawn without coverage.
 
 ## `cases.csv`
 
 | Column | | Description |
 |--------|---|-------------|
-| `county_name` | Required | County name, as in `county_boundaries.geojson` |
+| `county_fips` | Required, or `county_name` | 5-digit county FIPS code |
+| `county_name` | Required, or `county_fips` | County name, as the Census spells it |
 | `year` | Required | |
 | `n_cases` | Required | Cases in that county and year (and age group) |
 | `age_group` | Optional | One of `0-4`, `5-11`, `12-19`, `20-49`, `50+` or `Unknown`. Without it, only the "All Ages" view has cases |
@@ -188,6 +190,25 @@ district in `districts.csv` needs a boundary.
 | `latitude` | Required | |
 | `longitude` | Required | |
 
+## Your own boundaries
+
+To use boundaries other than the Census ones (say, your state's own
+school district map), put them in the data folder as GeoJSON. The
+dashboard then uses them instead of downloading. The made-up example data
+does this, since its state doesn't exist.
+
+## `county_boundaries.geojson`
+
+One polygon per county, with a `county_name` property (and a
+`county_fips` property, if your files use FIPS codes). Any coordinate
+system works. To write one from a shapefile in R:
+`sf::st_write(sf::st_read("counties.shp"), "county_boundaries.geojson")`.
+
+## `district_boundaries.geojson`
+
+One polygon per school district, with a `district_id` property that
+matches `districts.csv`.
+
 ## What the dashboard checks
 
 When it starts, the dashboard reads every file and stops with one message
@@ -197,7 +218,7 @@ that lists every problem it found, such as:
 The data in "my_data" can't be loaded:
   - schools.csv: column enroll should hold numbers but has "n/a"
   - facilities.csv: 2 row(s) have coordinates outside -90..90 / -180..180 (latitude and longitude swapped?)
-  - schools.csv: 1 county name(s) not in county_boundaries.geojson: Clear Lake County (leave out "County")
+  - schools.csv: 1 county name(s) not in the Census county boundaries for MN: Clear Lake County (leave out "County")
   - schools.csv: 1 school_id value(s) appear more than once: S00007
 ```
 
@@ -205,8 +226,8 @@ It checks for:
 
 - missing files and missing required columns
 - cells that should be numbers but aren't
-- county names that aren't in `county_boundaries.geojson`, and districts
-  that aren't in `district_boundaries.geojson`
+- county FIPS codes, county names and district IDs that aren't in the
+  boundaries
 - IDs and county names that appear more than once
 - rows with only one of `latitude` and `longitude`, or with coordinates
   out of range

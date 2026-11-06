@@ -42,8 +42,8 @@ read_dashboard_settings <- function(path) {
 }
 
 # Names a settings file may use besides the template's own (see the
-# template's comments): map, notes$enrollment
-OPTIONAL_SETTINGS <- c("map", "notes$enrollment")
+# template's comments): map, notes$enrollment, geography$year
+OPTIONAL_SETTINGS <- c("map", "notes$enrollment", "geography$year")
 
 # Input:  settings as written in the file, the template's settings, and
 #         the file's path (for the message)
@@ -100,7 +100,7 @@ check_settings <- function(settings, path) {
 
   # These have to be lists, e.g. case_years = list(min = 2010, ...)
   not_list <- character(0)
-  for (name in c("case_years", "proximity", "map", "suppression")) {
+  for (name in c("case_years", "proximity", "map", "suppression", "geography")) {
     if (!is.null(settings[[name]]) && !is.list(settings[[name]])) {
       problems <- c(problems, paste0(name, " has to be a list, e.g. ", name, " = list(...) as in the template"))
       settings[[name]] <- NULL

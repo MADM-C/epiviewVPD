@@ -19,6 +19,7 @@
 # file. inst/config/measles_mn.R shows a filled-in example.
 # ============================================================
 
+
 list(
   app = list(
     title = "EpiView: MMR Coverage and Measles",
@@ -65,6 +66,15 @@ list(
     redacted_grades = "Grade-level vaccination data are redacted to protect privacy.",
     redacted_childcares = "MMR coverage is not displayed for child cares whose data were withheld to protect privacy."
   ),
+  # CHANGE: your state's two-letter code. The dashboard downloads the
+  # county and school district boundaries for it from the U.S. Census
+  # Bureau (and keeps a copy, so it only downloads them once). A data
+  # folder with its own county_boundaries.geojson and
+  # district_boundaries.geojson uses those instead, as the example data does.
+  #   district_type: "unified" (default), "elementary" or "secondary"
+  #   year: Census year of the boundaries; leave it out for the tigris
+  #     package's default year
+  geography = list(state = NULL, district_type = "unified"),
   # CHANGE: how withheld values appear in your data.
   #   redacted_codes: values that mean "withheld", besides a blank cell,
   #     e.g. c("*", "S", "suppressed"); they are treated as blank.
