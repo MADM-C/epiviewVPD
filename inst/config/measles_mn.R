@@ -32,6 +32,9 @@ list(
     redacted_grades = "Grade-level vaccination data are redacted because fewer than 10 students were enrolled in each grade.",
     redacted_childcares = "MMR coverage is not displayed for facilities with fewer than 10 enrolled children."
   ),
+  # County and school district boundaries are downloaded from the Census
+  # for this state (unless the data folder has its own boundary files)
+  geography = list(state = "MN"),
   # How withheld values appear in the data: blank cells are redacted, and
   # blurred values (">95", "<5") count as their number plus/minus 1.
   suppression = list(

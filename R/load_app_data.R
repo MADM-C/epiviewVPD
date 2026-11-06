@@ -1,10 +1,10 @@
 # ============================================================
 # LOAD THE DASHBOARD'S DATA
 # ============================================================
-# load_app_data() reads the data folder (CSV files plus GeoJSON
-# boundaries, see DATA_FILES below) and returns the app data, one object
-# per layer, with the same column names for the same thing in every
-# layer:
+# load_app_data() reads the data folder (CSV files, see DATA_FILES
+# below), gets the county and school district boundaries, and returns the
+# app data, one object per layer, with the same column names for the same
+# thing in every layer:
 #
 #   counties            sf, one row per county (polygons + coverage)
 #   schools             sf, one row per school (points)
@@ -17,9 +17,14 @@
 #
 # Called by run_dashboard(); the result goes to app_server().
 #
-# Values are read as given. The loader only builds geometry, matches
-# county names to the county boundaries, and adds full_vax_pct_num (the
-# coverage as a number, for colors and sorting). It checks the files and
+# Boundaries are downloaded from the U.S. Census Bureau (tigris) for the
+# state in the settings, unless the data folder has its own
+# county_boundaries.geojson / district_boundaries.geojson.
+#
+# Values are read as given. The loader only builds geometry, finds each
+# row's county in the boundaries (by county_fips, else county_name, else
+# the coordinates), and adds full_vax_pct_num (the coverage as a number,
+# for colors and sorting). It checks the files and
 # stops with one message listing every problem it found. Only a file that
 # can't be read or lacks a required column stops it before the other
 # checks have run.
@@ -28,32 +33,38 @@
 # Files in the data folder, and the columns each must have. Optional
 # columns may be left out: the loader adds them with blank values, so the
 # dashboard treats a left-out column like one with every cell blank.
-# (county_name in schools.csv/facilities.csv is worked out from the
-# coordinates instead.)
+# county = TRUE: each row needs a county, by county_fips or county_name
+# (for points, the coordinates do if both are blank).
+# boundaries = TRUE: optional file; downloaded from the Census if missing.
 DATA_FILES <- list(
   counties = list(
     file = "counties.csv",
-    required = c("county_name", "enroll", "full_vax_pct"),
-    optional = c("full_vax", "students_of_color_pct", "frl_eligible_pct"),
-    numbers = c("enroll", "full_vax", "students_of_color_pct", "frl_eligible_pct")
+    required = c("enroll", "full_vax_pct"),
+    optional = c("county_fips", "county_name", "full_vax", "students_of_color_pct", "frl_eligible_pct"),
+    numbers = c("enroll", "full_vax", "students_of_color_pct", "frl_eligible_pct"),
+    county = TRUE
   ),
   county_boundaries = list(
     file = "county_boundaries.geojson",
-    required = "county_name"
+    required = "county_name",
+    optional = "county_fips",
+    boundaries = TRUE
   ),
   schools = list(
     file = "schools.csv",
     required = c("school_id", "school_name", "latitude", "longitude", "enroll", "full_vax_pct"),
     optional = c("full_vax", "partial_vax", "partial_vax_pct", "medical_pct", "nonmedical_pct",
-                 "school_type", "grade_range", "address", "county_name", "district_id",
+                 "school_type", "grade_range", "address", "county_fips", "county_name", "district_id",
                  "contact_info", "home_languages"),
-    numbers = c("enroll", "full_vax", "partial_vax")
+    numbers = c("enroll", "full_vax", "partial_vax"),
+    county = TRUE
   ),
   facilities = list(
     file = "facilities.csv",
     required = c("facility_id", "facility_name", "latitude", "longitude", "enroll", "full_vax_pct"),
-    optional = c("full_vax", "enroll_eligible", "county_name"),
-    numbers = c("enroll", "full_vax", "enroll_eligible")
+    optional = c("full_vax", "enroll_eligible", "county_fips", "county_name"),
+    numbers = c("enroll", "full_vax", "enroll_eligible"),
+    county = TRUE
   ),
   grades = list(
     file = "grades.csv",
@@ -69,13 +80,15 @@ DATA_FILES <- list(
   ),
   district_boundaries = list(
     file = "district_boundaries.geojson",
-    required = "district_id"
+    required = "district_id",
+    boundaries = TRUE
   ),
   cases = list(
     file = "cases.csv",
-    required = c("county_name", "year", "n_cases"),
-    optional = "age_group",
-    numbers = c("year", "n_cases")
+    required = c("year", "n_cases"),
+    optional = c("county_fips", "county_name", "age_group"),
+    numbers = c("year", "n_cases"),
+    county = TRUE
   ),
   healthcare_centers = list(
     file = "healthcare_centers.csv",
@@ -88,43 +101,64 @@ DATA_FILES <- list(
 #         percentage (">95", "<5") is counted in full_vax_pct_num;
 #         redacted_codes = values that mean "withheld" (e.g. "*"), read as
 #         blank in the count and percentage columns
-#         (both from the settings' suppression entry, dashboard_settings.R)
+#         (both from the settings' suppression entry, dashboard_settings.R);
+#         geography = the settings' geography entry: state (for the Census
+#         boundaries), district_type, year
 # Output: named list of app data objects (see top of file)
-load_app_data <- function(data_dir, suppressed_offset = 1, redacted_codes = character(0)) {
+load_app_data <- function(data_dir, suppressed_offset = 1, redacted_codes = character(0),
+                          geography = list(state = NULL, district_type = "unified", year = NULL)) {
   if (!dir.exists(data_dir)) {
     stop("The data folder \"", data_dir, "\" doesn't exist.", call. = FALSE)
   }
   files <- vapply(DATA_FILES, `[[`, "", "file")
-  missing <- files[!file.exists(file.path(data_dir, files))]
+  needed <- !vapply(DATA_FILES, function(spec) isTRUE(spec$boundaries), TRUE)
+  missing <- files[needed & !file.exists(file.path(data_dir, files))]
   if (length(missing) > 0) {
     stop("The data folder \"", data_dir, "\" is missing: ",
          paste(missing, collapse = ", "), call. = FALSE)
   }
 
   problems <- new_problem_list()
-  raw <- lapply(names(DATA_FILES), function(layer) read_data_file(data_dir, layer, problems, redacted_codes))
+  raw <- lapply(names(DATA_FILES), function(layer) {
+    spec <- DATA_FILES[[layer]]
+    if (isTRUE(spec$boundaries) && !file.exists(file.path(data_dir, spec$file))) {
+      download_boundaries(layer, geography, problems)
+    } else {
+      read_data_file(data_dir, layer, problems, redacted_codes)
+    }
+  })
   names(raw) <- names(DATA_FILES)
-  # Unreadable files or missing columns: the checks below can't run
+  for (layer in names(DATA_FILES)) {
+    if (isTRUE(DATA_FILES[[layer]]$county) && !is.null(raw[[layer]]) &&
+        all(is.na(raw[[layer]]$county_fips)) && all(is.na(raw[[layer]]$county_name)) &&
+        !layer %in% c("schools", "facilities")) {
+      problems$add_blocking(DATA_FILES[[layer]]$file, ": needs a county_fips or county_name column")
+    }
+  }
+  # Unreadable files, missing columns or boundaries: the checks below can't run
   if (problems$blocking()) report_problems(problems, data_dir)
+  county_bounds <- raw$county_boundaries
+  check_unique(county_bounds$county_name, boundary_source(county_bounds), "county_name", problems)
+  if (!all(is.na(county_bounds$county_fips))) {
+    check_unique(county_bounds$county_fips, boundary_source(county_bounds), "county_fips", problems)
+  }
 
-  # --- counties: boundaries with coverage joined by county_name ---
-  counties <- join_to_boundaries(raw$county_boundaries, raw$counties, "county_name", problems)
-  county_names <- counties$county_name
+  # --- counties: boundaries with coverage joined by county ---
+  counties <- join_counties(county_bounds, raw$counties, problems)
 
   # --- points ---
   schools <- as_points(raw$schools, "schools.csv", problems, allow_empty = FALSE)
   facilities <- as_points(raw$facilities, "facilities.csv", problems, allow_empty = TRUE)
   healthcare_centers <- as_points(raw$healthcare_centers, "healthcare_centers.csv", problems, allow_empty = FALSE)
 
-  schools <- add_county_names(schools, counties, "schools.csv", problems)
-  facilities <- add_county_names(facilities, counties, "facilities.csv", problems)
+  schools <- add_counties(schools, county_bounds, "schools.csv", problems)
+  facilities <- add_counties(facilities, county_bounds, "facilities.csv", problems)
 
   # --- districts: boundaries with coverage joined by district_id ---
-  districts <- join_to_boundaries(raw$district_boundaries, raw$districts, "district_id", problems)
+  districts <- join_districts(raw$district_boundaries, raw$districts, problems)
 
   # --- cases ---
-  cases <- raw$cases
-  cases$county_name <- match_county_names(cases$county_name, county_names, "cases.csv", problems)
+  cases <- add_counties(raw$cases, county_bounds, "cases.csv", problems)
   cases$year <- as.integer(cases$year)
   cases$n_cases <- as.integer(cases$n_cases)
 
@@ -172,6 +206,7 @@ read_data_file <- function(data_dir, layer, problems, redacted_codes = character
     if (is.na(sf::st_crs(x))) sf::st_crs(x) <- 4326
     if (!isTRUE(sf::st_crs(x) == sf::st_crs(4326))) x <- sf::st_transform(x, 4326)
     sf::st_geometry(x) <- "geometry"
+    attr(x, "source") <- spec$file
   } else {
     x <- tryCatch(
       utils::read.csv(path, colClasses = "character", na.strings = "", check.names = FALSE,
@@ -194,7 +229,7 @@ read_data_file <- function(data_dir, layer, problems, redacted_codes = character
     problems$add_blocking(spec$file, ": missing required column", if (length(missing) > 1) "s", " ",
                           paste(missing, collapse = ", "))
   }
-  for (col in spec$required) {
+  for (col in c(spec$required, spec$optional)) {
     if (col %in% names(x) && !col %in% c("latitude", "longitude") && !col %in% spec$numbers) {
       x[[col]] <- as.character(x[[col]])
     }
@@ -203,7 +238,7 @@ read_data_file <- function(data_dir, layer, problems, redacted_codes = character
     x[[col]] <- as_number(x[[col]], spec$file, col, problems)
   }
   # Left-out optional columns become blank columns
-  for (col in setdiff(spec$optional, c(names(x), "county_name"))) {
+  for (col in setdiff(spec$optional, names(x))) {
     x[[col]] <- if (col %in% spec$numbers) rep(NA_real_, nrow(x)) else rep(NA_character_, nrow(x))
   }
   x
@@ -247,60 +282,157 @@ as_points <- function(x, file, problems, allow_empty) {
   sf::st_sf(x, geometry = geometry)
 }
 
-# Boundaries (sf with a `key` column) with the data rows joined on `key`.
-# Keys are matched exactly for districts; county names ignoring case,
-# keeping the boundaries' spelling. Every data row needs a boundary;
-# boundaries without data get NA coverage.
-join_to_boundaries <- function(boundaries, data, key, problems) {
-  bfile <- if (key == "county_name") "county_boundaries.geojson" else "district_boundaries.geojson"
-  dfile <- if (key == "county_name") "counties.csv" else "districts.csv"
-  b_key <- as.character(boundaries[[key]])
-  d_key <- data[[key]]
-  check_unique(b_key, bfile, key, problems)
-  check_unique(d_key, dfile, key, problems)
-  if (key == "county_name") {
-    d_key <- match_county_names(d_key, b_key, dfile, problems)
+# ---- Boundaries ------------------------------------------------------------
+
+# Census boundaries for the state in the settings (tigris, cached), as
+# the sf a boundary file would give: counties with county_fips (5-digit
+# GEOID) and county_name; school districts with district_id (7-digit
+# GEOID) of the settings' district_type ("unified", "elementary" or
+# "secondary").
+download_boundaries <- function(layer, geography, problems) {
+  file <- DATA_FILES[[layer]]$file
+  state <- geography$state
+  if (is.null(state) || !nzchar(state)) {
+    problems$add_blocking(file, " isn't in the data folder, and the settings don't name a state ",
+                          "(geography$state) to download the Census boundaries for")
+    return(NULL)
+  }
+  old <- options(tigris_use_cache = TRUE)
+  on.exit(options(old))
+  district_type <- if (is.null(geography$district_type)) "unified" else geography$district_type
+  what <- if (layer == "county_boundaries") "county" else paste(district_type, "school district")
+  x <- tryCatch(
+    suppressMessages(
+      if (layer == "county_boundaries") {
+        tigris::counties(state, cb = TRUE, year = geography$year, progress_bar = FALSE)
+      } else {
+        tigris::school_districts(state, type = district_type, cb = TRUE, year = geography$year,
+                                 progress_bar = FALSE)
+      }
+    ),
+    error = function(e) {
+      problems$add_blocking("Couldn't download the Census ", what, " boundaries for ", state, " (",
+                            conditionMessage(e), "). Check the internet connection and ",
+                            "geography$state, or put ", file, " in the data folder.")
+      NULL
+    }
+  )
+  if (is.null(x)) return(NULL)
+  x <- sf::st_transform(x, 4326)
+  out <- if (layer == "county_boundaries") {
+    data.frame(county_fips = x$GEOID, county_name = x$NAME, stringsAsFactors = FALSE)
   } else {
-    unmatched <- setdiff(d_key[!is.na(d_key)], b_key)
-    if (length(unmatched) > 0) {
-      problems$add(dfile, ": ", length(unmatched), " ", key, "(s) not in ", bfile, ": ",
-                   paste(utils::head(unmatched, 5), collapse = ", "))
+    data.frame(district_id = x$GEOID, stringsAsFactors = FALSE)
+  }
+  out <- sf::st_sf(out, geometry = sf::st_geometry(x))
+  attr(out, "source") <- paste0("the Census ", what, " boundaries for ", state)
+  out
+}
+
+# Where a boundary layer came from, for messages
+boundary_source <- function(boundaries) {
+  src <- attr(boundaries, "source")
+  if (is.null(src)) "the boundaries" else src
+}
+
+# Row of the county boundaries for each row of a file: by county_fips
+# (exact text) where given, otherwise by county_name (ignoring case).
+# Rows with neither are NA. Values that match no county are reported.
+county_rows <- function(fips, name, bounds, file, problems) {
+  src <- boundary_source(bounds)
+  rows <- rep(NA_integer_, length(name))
+  by_fips <- !is.na(fips)
+  if (any(by_fips)) {
+    if (all(is.na(bounds$county_fips))) {
+      problems$add(file, ": has county_fips, but ", src, " have no county_fips to match it with")
+    } else {
+      rows[by_fips] <- match(fips[by_fips], bounds$county_fips)
+      bad <- unique(fips[by_fips & is.na(rows)])
+      if (length(bad) > 0) {
+        hint <- if (any(nchar(bad) < 5)) " (5 digits: keep leading zeros)" else ""
+        problems$add(file, ": ", length(bad), " county_fips value(s) not in ", src, ": ",
+                     paste(utils::head(bad, 5), collapse = ", "), hint)
+      }
     }
   }
-  data[[key]] <- NULL
-  rows <- match(b_key, d_key)
+  by_name <- !by_fips & !is.na(name)
+  if (any(by_name)) {
+    rows[by_name] <- match(tolower(name[by_name]), tolower(bounds$county_name))
+    bad <- unique(name[by_name & is.na(rows)])
+    if (length(bad) > 0) {
+      hint <- if (any(tolower(sub(" [Cc]ounty$", "", bad)) %in% tolower(bounds$county_name))) {
+        " (leave out \"County\")"
+      } else ""
+      problems$add(file, ": ", length(bad), " county name(s) not in ", src, ": ",
+                   paste(utils::head(bad, 5), collapse = ", "), hint)
+    }
+  }
+  rows
+}
+
+# counties.csv joined to the county boundaries; every county has a row in
+# the result (counties without coverage get NA)
+join_counties <- function(bounds, data, problems) {
+  rows <- county_rows(data$county_fips, data$county_name, bounds, "counties.csv", problems)
+  missing_county <- is.na(data$county_fips) & is.na(data$county_name)
+  if (any(missing_county)) {
+    problems$add("counties.csv: ", sum(missing_county), " row(s) have neither county_fips nor county_name")
+  }
+  dup <- unique(rows[!is.na(rows) & duplicated(rows)])
+  if (length(dup) > 0) {
+    problems$add("counties.csv: ", length(dup), " county(ies) appear more than once: ",
+                 paste(utils::head(bounds$county_name[dup], 5), collapse = ", "))
+  }
+  data$county_fips <- NULL
+  data$county_name <- NULL
+  joined <- data[match(seq_len(nrow(bounds)), rows), , drop = FALSE]
+  rownames(joined) <- NULL
+  out <- cbind(data.frame(county_name = as.character(bounds$county_name),
+                          county_fips = as.character(bounds$county_fips),
+                          stringsAsFactors = FALSE),
+               joined)
+  sf::st_sf(out, geometry = sf::st_geometry(bounds))
+}
+
+# districts.csv joined to the district boundaries by district_id (exact
+# text); districts without coverage get NA
+join_districts <- function(bounds, data, problems) {
+  src <- boundary_source(bounds)
+  b_id <- as.character(bounds$district_id)
+  check_unique(b_id, src, "district_id", problems)
+  check_unique(data$district_id, "districts.csv", "district_id", problems)
+  unmatched <- setdiff(data$district_id[!is.na(data$district_id)], b_id)
+  if (length(unmatched) > 0) {
+    problems$add("districts.csv: ", length(unmatched), " district_id(s) not in ", src, ": ",
+                 paste(utils::head(unmatched, 5), collapse = ", "))
+  }
+  rows <- match(b_id, data$district_id)
+  data$district_id <- NULL
   joined <- data[rows, , drop = FALSE]
   rownames(joined) <- NULL
-  out <- cbind(stats::setNames(data.frame(b_key, stringsAsFactors = FALSE), key), joined)
-  sf::st_sf(out, geometry = sf::st_geometry(boundaries))
+  out <- cbind(data.frame(district_id = b_id, stringsAsFactors = FALSE), joined)
+  sf::st_sf(out, geometry = sf::st_geometry(bounds))
 }
 
-# ---- Counties ------------------------------------------------------------
-
-# County names spelled as in the county boundaries (matched ignoring
-# case). Names that aren't counties are reported.
-match_county_names <- function(x, county_names, file, problems) {
-  lookup <- stats::setNames(county_names, tolower(county_names))
-  unmatched <- setdiff(unique(tolower(x[!is.na(x)])), names(lookup))
-  if (length(unmatched) > 0) {
-    shown <- unique(x[tolower(x) %in% unmatched])
-    hint <- if (any(sub(" county$", "", unmatched) %in% names(lookup))) " (leave out \"County\")" else ""
-    problems$add(file, ": ", length(unmatched), " county name(s) not in county_boundaries.geojson: ",
-                 paste(utils::head(shown, 5), collapse = ", "), hint)
+# county_name (spelled as in the boundaries) and county_fips for each row
+# of a file, from its county_fips/county_name columns; for points with
+# neither, from the county the point lies in. Rows of a non-point file
+# with neither are reported.
+add_counties <- function(x, bounds, file, problems) {
+  rows <- county_rows(x$county_fips, x$county_name, bounds, file, problems)
+  neither <- is.na(x$county_fips) & is.na(x$county_name)
+  if (inherits(x, "sf")) {
+    find <- neither & !sf::st_is_empty(x)
+    if (any(find)) {
+      inside <- sf::st_within(x[find, ], bounds)
+      rows[find] <- vapply(inside, function(i) if (length(i)) i[1] else NA_integer_, 1L)
+    }
+  } else if (any(neither)) {
+    problems$add(file, ": ", sum(neither), " row(s) have neither county_fips nor county_name")
   }
-  unname(lookup[tolower(x)])
-}
-
-# county_name for points: from the column when the file has one, otherwise
-# from the county each point lies in
-add_county_names <- function(points, counties, file, problems) {
-  if ("county_name" %in% names(points)) {
-    points$county_name <- match_county_names(points$county_name, counties$county_name, file, problems)
-  } else {
-    inside <- sf::st_within(points, counties)
-    points$county_name <- vapply(inside, function(i) if (length(i)) counties$county_name[i[1]] else NA_character_, "")
-  }
-  points
+  x$county_name <- as.character(bounds$county_name)[rows]
+  x$county_fips <- as.character(bounds$county_fips)[rows]
+  x
 }
 
 # ---- Values --------------------------------------------------------------

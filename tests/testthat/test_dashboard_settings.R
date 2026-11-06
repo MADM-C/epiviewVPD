@@ -137,7 +137,7 @@ test_that("misspelled settings give a warning; the shipped settings give none", 
   expect_no_warning(read_dashboard_settings(system.file("config", "template.R", package = "epiviewVPD")))
   expect_no_warning(read_dashboard_settings(system.file("config", "measles_mn.R", package = "epiviewVPD")))
   expect_no_warning(read_dashboard_settings(settings_file(
-    'list(map = NULL, notes = list(enrollment = "As of Oct 1."))'
+    'list(map = NULL, notes = list(enrollment = "As of Oct 1."), geography = list(year = 2023))'
   )))
 })
 

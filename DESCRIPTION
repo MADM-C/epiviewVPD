@@ -29,7 +29,8 @@ Imports:
   stringr,
   tibble,
   tidygeocoder,
-  tidyr
+  tidyr,
+  tigris
 VignetteBuilder: knitr
 Suggests:
   pkgload,

@@ -37,7 +37,8 @@ run_dashboard <- function(data_dir = "App Data",
   app_data <- load_app_data(
     data_dir,
     suppressed_offset = dashboard_config$suppression$blurred_offset,
-    redacted_codes = dashboard_config$suppression$redacted_codes
+    redacted_codes = dashboard_config$suppression$redacted_codes,
+    geography = dashboard_config$geography
   )
 
   shiny::shinyApp(
