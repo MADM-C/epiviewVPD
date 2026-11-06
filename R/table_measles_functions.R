@@ -1,6 +1,6 @@
 # ==== MEASLES CASE HELPERS: case table, case filtering, case gt table, epicurve ===
 # TODO(#20): parts of this file are specific to measles (labels,
-# object names); TODO(#14): case age groups are hard-coded
+# object names)
 
 # Input:  cases from the standard app data
 # Output: display table with a `county` column
@@ -23,20 +23,33 @@ filter_cases <- function(case_table, selected_county) {
   }
 }
 
-render_cases_gt <- function(filtered_data, selected_county) {
-  all_age_groups <- c("0–4", "5–11", "12–19", "20–49", "50+", "Unknown")
+# Input:  filtered_data from filter_cases(); selected_county;
+#         age_groups = the case age groups in display order
+#         (case_age_groups.R, from settings case_age_groups)
+# Output: gt table with one column per age group and a row per year;
+#         cases with no age group get their own column ("Cases" when the
+#         data have no age groups at all)
+# Used by gtServer() and inst/reports/gt_summary_report.Rmd.
+render_cases_gt <- function(filtered_data, selected_county,
+                            age_groups = case_age_groups(NULL, filtered_data$age_group)) {
+  # Cases without an age group get their own column, under a key that
+  # can't clash with a group's name
+  no_age <- ".no_age_group"
+  no_age_label <- if (length(age_groups) == 0) "Cases" else "Age not given"
+  age <- trimws(as.character(filtered_data$age_group))
+  age[is.na(age) | age == ""] <- no_age
+  groups <- c(age_groups, if (no_age %in% age) no_age)
 
   wide_cases <- filtered_data %>%
     mutate(
       county = as.character(county),
-      age_group = gsub("-", "–", age_group),
-      age_group = factor(age_group, levels = all_age_groups, ordered = TRUE)
+      age_group = factor(age, levels = groups)
     ) %>%
     # Every age group appears for every county-year, even with zero cases.
     complete(
       county,
       year,
-      age_group = all_age_groups,
+      age_group = factor(groups, levels = groups),
       fill = list(n_cases = 0)
     ) %>%
     group_by(county, year, age_group) %>%
@@ -47,11 +60,7 @@ render_cases_gt <- function(filtered_data, selected_county) {
       values_fill = 0
     ) %>%
     arrange(year) %>%
-    select(
-      county,
-      year,
-      all_of(all_age_groups[all_age_groups %in% names(.)])
-    )
+    select(county, year, all_of(groups))
 
   wide_cases %>%
     gt() %>%
@@ -70,16 +79,11 @@ render_cases_gt <- function(filtered_data, selected_county) {
       ),
       locations = cells_title(groups = "title")
     ) %>%
-    cols_label(
-      county = "County",
-      year = "Year",
-      `0–4` = "0–4 Years",
-      `5–11` = "5–11 Years",
-      `12–19` = "12–19 Years",
-      `20–49` = "20–49 Years",
-      `50+` = "50+ Years",
-      Unknown = "Unknown"
-    ) %>%
+    # all headings in .list: cols_label() ignores named arguments given with it
+    cols_label(.list = stats::setNames(
+      as.list(c("County", "Year", age_group_labels(age_groups), if (no_age %in% groups) no_age_label)),
+      c("county", "year", groups)
+    )) %>%
     fmt_number(columns = -c(county, year), decimals = 0) %>%
     cols_align(
       align = "center",

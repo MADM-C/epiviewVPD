@@ -40,6 +40,13 @@ list(
   ),
   funding = NULL,          # CHANGE: funding statement for the footer, or NULL
   case_years = list(min = 2010, max = 2025, selected = c(2015, 2020)),   # CHANGE: years in your case data
+  # CHANGE (optional): age groups of the historical cases, written as in
+  # the age_group column of cases.csv, in the order to show them, e.g.
+  #   case_age_groups = c("0-4", "5-11", "12-19", "20-49", "50+", "Unknown"),
+  # The dashboard then stops with a message if cases.csv has another
+  # group. NULL uses the groups found in the data, sorted by their first
+  # number ("Unknown" last); list them here if that order is wrong.
+  case_age_groups = NULL,
   proximity = list(
     default_threshold = 85,
     address_placeholder = "e.g. 123 Main St, City, ST 00000"

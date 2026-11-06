@@ -159,6 +159,12 @@ check_settings <- function(settings, path) {
     }
   }
 
+  # Case age groups: NULL (groups from the data) or text, each once
+  ages <- settings$case_age_groups
+  if (!is.null(ages) && (!is.character(ages) || length(ages) == 0 || anyNA(ages) || any(trimws(ages) == "") || anyDuplicated(ages))) {
+    problems <- c(problems, "case_age_groups has to be NULL or the age groups as text, each once, e.g. c(\"0-4\", \"5-17\", \"18+\", \"Unknown\")")
+  }
+
   # Coverage cutoffs and colors (coverage_bands.R)
   bands_problem <- tryCatch({
     coverage_bands(settings$coverage_bins)

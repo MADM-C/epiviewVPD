@@ -11,6 +11,7 @@ list(
   ),
   funding = "This work was supported by cooperative agreement CDC-RFA-FT-23-0069 from the Center for Forecasting and Outbreak Analytics of the U.S. Centers for Disease Control and Prevention (CDC). Its contents are solely the responsibility of the authors and do not necessarily represent the official views of the CDC.",
   case_years = list(min = 2010, max = 2025, selected = c(2015, 2020)),
+  case_age_groups = c("0-4", "5-11", "12-19", "20-49", "50+", "Unknown"),
   proximity = list(
     default_threshold = 85,
     address_placeholder = "e.g. 100 Church St SE, Minneapolis, MN, 55455"
