@@ -54,6 +54,9 @@
 # map_view
 #   Starting view for the map in the downloaded report (map_view.R).
 #
+# bands
+#   Coverage color bands from the settings (coverage_bands.R).
+#
 # Reactive Inputs Used
 # --------------------
 # input$selected_location
@@ -107,7 +110,8 @@ gradeDetailsServer <- function(input, output, session,
                                counties,
                                districts = NULL,
                                notes = default_settings()$notes,
-                               map_view = map_view_from_counties(counties)) {
+                               map_view = map_view_from_counties(counties),
+                               bands = coverage_bands()) {
 
   # === Table of Grade-Level MMR for Selected School ====
   output$grade_table <- render_gt({
@@ -137,7 +141,7 @@ gradeDetailsServer <- function(input, output, session,
     if (is_nonresponder(school_id, school_data = schools)) {
       NULL
     } else {
-      grade_level_plot(school_id, grade_data = grades)
+      grade_level_plot(school_id, grade_data = grades, bands = bands)
     }
   })
 
@@ -257,7 +261,8 @@ gradeDetailsServer <- function(input, output, session,
         district_data = districts,
         county_data = counties,
         grade_data = grades,
-        map_view = map_view
+        map_view = map_view,
+        coverage_bands = bands
       )
 
       # Render the report

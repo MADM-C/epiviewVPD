@@ -13,6 +13,7 @@ params:
   grade_data: NULL
   selected_school_id: NULL
   map_view: NULL
+  coverage_bands: NULL
 ---
 <style>
 /* Document Width */
@@ -85,6 +86,8 @@ district_data <- params$district_data
 county_data <- params$county_data
 grade_data <- params$grade_data
 selected_school_id <- params$selected_school_id
+# Coverage cutoffs and colors (coverage_bands.R); NULL = defaults
+bands <- coverage_bands(params$coverage_bands)
 
 # --- Data Selection ---
 
@@ -244,9 +247,9 @@ cat('<style> .leaflet-container { background: #FFF; } </style>')
 report_map_view <- if (is.null(params$map_view)) map_view_from_counties(county_data) else params$map_view
 is_district_mode <- !is.null(boundary) && boundary %in% c("district")
 if (is_district_mode && !is.null(district_data)) {
-      county_district_map_dashboard(district_data, county_palette(county_data$full_vax_pct_num), "district", report_map_view)
+      county_district_map_dashboard(district_data, bands, "district", report_map_view)
   } else {
-    county_district_map_dashboard(county_data, county_palette(county_data$full_vax_pct_num), "county", report_map_view)
+    county_district_map_dashboard(county_data, bands, "county", report_map_view)
   }
 
 ```
@@ -284,7 +287,7 @@ if (isTRUE(is_school)) {
   if (is_nonresponder(school_id, school_data = school_data)) {
   NULL
   } else {
-    grade_level_plot(school_id, grade_data = grade_data)
+    grade_level_plot(school_id, grade_data = grade_data, bands = bands)
   }
 } else {
   NULL

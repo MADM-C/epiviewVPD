@@ -66,7 +66,7 @@ columns in.
 - **Percentages** are 0–100, not 0–1 (`92.4`, not `0.924`).
 - **Suppressed values**: a percentage may be written the way it was
   published, such as `">95"` or `"<5"`. The dashboard shows it as written.
-  For the county and district map colors it counts it one point past its
+  For the coverage colors it counts it one point past its
   number (`">95"` as 96, `"<5"` as 4); the settings'
   `suppression$blurred_offset` changes how far.
 - **Missing values**: leave the cell blank. Don't use 0 for "no data":

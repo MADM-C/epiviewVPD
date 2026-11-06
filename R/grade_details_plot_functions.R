@@ -2,7 +2,9 @@
 # Create Grade-Level Bar Chart (NA-safe) for Grade Details Module
 # ============================================================
 
-grade_level_plot <- function(grade_data = NULL, school_id) {
+# bands = coverage color bands (coverage_bands.R).
+# Used by gradeDetailsServer() and inst/reports/dashboard_report.Rmd.
+grade_level_plot <- function(grade_data = NULL, school_id, bands = coverage_bands()) {
 
   grade_data <- grade_data |>
     dplyr::filter(school_id == .env$school_id) |>
@@ -14,7 +16,7 @@ grade_level_plot <- function(grade_data = NULL, school_id) {
       partial_num = parse_vax_num(partial_vax_pct),
 
       # Fill color for the full-vax segment
-      full_color = coverage_color(full_vax_pct, full_num),
+      full_color = coverage_color(full_vax_pct, full_num, bands),
 
       # Label text for the full-vax value
       full_label = format_vax_pct(full_vax_pct)

@@ -79,8 +79,8 @@ list(
   #   redacted_codes: values that mean "withheld", besides a blank cell,
   #     e.g. c("*", "S", "suppressed"); they are treated as blank.
   #   blurred_offset: a blurred value such as ">95" or "<5" counts as its
-  #     number plus (for ">") or minus (for "<") this on the county and
-  #     district maps' colors and in district coverage.
+  #     number plus (for ">") or minus (for "<") this, for the coverage
+  #     colors (see coverage_bins) and district coverage.
   #   suppression = NULL means exact numbers: no codes, offset 0.
   suppression = list(
     redacted_codes = character(0),
@@ -124,12 +124,18 @@ list(
     "Vaccination rates reflect annual school and child care immunization reports and may be incomplete for certain facilities or counties.",
     "To protect privacy, data blurring standards were used. Data blurring involves reporting a range of vaccination coverage rather than a precise percentage. For example, schools or school districts that report all or almost all of their students being fully vaccinated have vaccination rates displayed as >95% or >98%. The range reported depends on the number of students enrolled in the school or school district. Data blurring is used to limit sharing private health information on individuals."
   ),
-  # Must match the coverage color bins applied by the summary table server module.
+  # CHANGE (optional): coverage cutoffs and colors, lowest band first. They
+  # color the maps, the school and child care dots, the grade bars, the
+  # tables and the reports, and they set the legends and the color key.
+  # min = lowest coverage (%) in the band (the first band starts at 0);
+  # background = the band's color; color = text color in the color key.
+  # Legend text is written from the cutoffs; add label = "..." to a band
+  # to word it yourself.
   coverage_bins = list(
-    list(label = "Below 85%", background = "#C62828", color = "white"),
-    list(label = "85–89%", background = "orange", color = "#000"),
-    list(label = "90–94%", background = "gold", color = "#000"),
-    list(label = "95% and above", background = "darkgreen", color = "white")
+    list(min = 0, background = "red", color = "white"),
+    list(min = 85, background = "orange", color = "#000"),
+    list(min = 90, background = "gold", color = "#000"),
+    list(min = 95, background = "darkgreen", color = "white")
   ),
   # CHANGE: add questions about your state's reporting rules and laws
   faq = list(

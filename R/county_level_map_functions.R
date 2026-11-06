@@ -2,22 +2,6 @@
 # FUNCTIONS TO EXECUTE COUNTY LEVEL MAP MODULE
 # ====================================================
 
-# ==== County map colors ====
-# Coverage cutoffs (%) and the color for each band on the county map.
-COVERAGE_BINS <- c(0, 85, 90, 95, 100)
-COVERAGE_COLORS <- c("red", "orange", "gold", "darkgreen")
-
-# Builds the color palette for the county/district map.
-# Used by app_server() and inst/reports/dashboard_report.Rmd.
-county_palette <- function(domain) {
-  colorBin(
-    palette = COVERAGE_COLORS,
-    bins = COVERAGE_BINS,
-    domain = domain,
-    na.color = "gray"
-  )
-}
-
 # ==== Create main County/District map on dashboard tab ====
 
 # Polygon layer ids on the county map: lower-case county names for
@@ -29,10 +13,11 @@ map_layer_ids <- function(map_data, boundary) {
 
 # Input:  map_data = counties or districts from the standard app data
 #         (load_app_data.R); boundary = "county" or "district";
+#         bands = coverage color bands (coverage_bands.R);
 #         map_view = starting view (map_view.R), by default one that fits map_data
 # Output: leaflet map shaded by coverage
 # Used by countyMapServer() and inst/reports/dashboard_report.Rmd.
-county_district_map_dashboard <- function(map_data, pal_county, boundary = c("county", "district"),
+county_district_map_dashboard <- function(map_data, bands, boundary = c("county", "district"),
                                           map_view = map_view_from_counties(map_data)) {
   boundary <- match.arg(boundary)
   boundary_view <- if (boundary == "county") "County" else "District"
@@ -96,17 +81,18 @@ county_district_map_dashboard <- function(map_data, pal_county, boundary = c("co
     apply_map_view(map_view) |>
     addProviderTiles("Esri.WorldTopoMap") |>
     addPolygons(
-      fillColor = ~ pal_county(full_vax_pct),
+      fillColor = coverage_band_color(map_data$full_vax_pct, bands),
       fillOpacity = 0.7,
       color = "white",
       weight = 1,
       layerId = ~layer_id,
       label = ~map_label
     ) |>
-    addLegend("bottomright",
-              pal = pal_county,
-              values = map_data$full_vax_pct,
-              title = paste0(ifelse(boundary_view == "County","County", "District"), " MMR (%)"), opacity = 0.7
+    add_coverage_legend(
+      bands,
+      title = paste0(boundary_view, " MMR (%)"),
+      missing_label = if (anyNA(map_data$full_vax_pct)) "Missing/Unknown",
+      opacity = 0.7
     )
   return(map)
 }

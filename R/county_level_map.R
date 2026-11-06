@@ -27,9 +27,9 @@
 #   Standard counties and districts objects (load_app_data.R):
 #   boundaries with vaccination coverage and enrollment.
 #
-# pal_county
-#   Color palette function used to shade counties according to MMR
-#   vaccination coverage.
+# bands
+#   Coverage color bands (coverage_bands.R) used to shade counties and
+#   districts by MMR vaccination coverage.
 #
 # map_view
 #   Starting view for the map (map_view.R).
@@ -69,7 +69,7 @@
 # ============================================================
 
 
-countyMapServer <- function(input, output, session, counties, pal_county, districts = NULL,
+countyMapServer <- function(input, output, session, counties, bands, districts = NULL,
                             map_view = map_view_from_counties(counties)) {
 
   # === County-level OR District-Level Leaflet Map ===
@@ -77,9 +77,9 @@ countyMapServer <- function(input, output, session, counties, pal_county, distri
     is_district_mode <- !is.null(input$boundary_type) && input$boundary_type == "district"
 
     if (is_district_mode && !is.null(districts)) {
-      county_district_map_dashboard(districts, pal_county, "district", map_view)
+      county_district_map_dashboard(districts, bands, "district", map_view)
     } else {
-      county_district_map_dashboard(counties, pal_county, "county", map_view)
+      county_district_map_dashboard(counties, bands, "county", map_view)
     }
   })
 

@@ -13,6 +13,7 @@ params:
   gt_sort_by: NULL
   nonreporting_note: NULL
   redacted_childcares_note: NULL
+  coverage_bands: NULL
 ---
 
 ```{css, echo=FALSE}
@@ -289,7 +290,7 @@ if (nrow(filtered_data) > 0 && params$table_type %in% c(
       # Apply custom color logic
       gt::data_color(
         columns = full_vax_pct,
-        colors = function(x) mmr_colors(x, sorted_data$full_vax_pct_chr)
+        colors = function(x) mmr_colors(x, sorted_data$full_vax_pct_chr, coverage_bands(params$coverage_bands))
       ) %>%
       gt::cols_hide(columns = full_vax_pct_chr)
   } else if (params$table_type == "School Vaccine Coverage" && params$boundary_type == "district") {
@@ -306,7 +307,7 @@ if (nrow(filtered_data) > 0 && params$table_type %in% c(
       # Apply custom color logic
       gt::data_color(
         columns = full_vax_pct,
-        fn = function(x) mmr_colors(x, sorted_data$full_vax_pct_chr)
+        fn = function(x) mmr_colors(x, sorted_data$full_vax_pct_chr, coverage_bands(params$coverage_bands))
       ) %>%
       gt::cols_hide(columns = full_vax_pct_chr)
   }

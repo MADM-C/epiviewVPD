@@ -76,13 +76,6 @@ list(
     "Geospatial layers were sourced from the Minnesota Geospatial Commons.",
     "To protect privacy, data blurring standards were used. Data blurring involves reporting a range of vaccination coverage rather than a precise percentage. For example, schools or school districts that report all or almost all of their students being fully vaccinated have vaccination rates displayed as >95% or >98%. The range reported depends on the number of students enrolled in the school or school district. Data blurring is used to limit sharing private health information on individuals."
   ),
-  # Must match the coverage color bins applied by the summary table server module.
-  coverage_bins = list(
-    list(label = "Below 85%", background = "#C62828", color = "white"),
-    list(label = "85–89%", background = "orange", color = "#000"),
-    list(label = "90–94%", background = "gold", color = "#000"),
-    list(label = "95% and above", background = "darkgreen", color = "white")
-  ),
   faq = list(
     list(
       question = "Who is the tool designed for?",

@@ -119,27 +119,25 @@ sort_coverage_table <- function(filtered_data, table_type, boundary_type, sort_b
 # coverage as published; blurred values (">95", "<5") are colored by the
 # number they count as (pct_number(), load_app_data.R). Also used by
 # inst/reports/gt_summary_report.Rmd.
-mmr_colors <- function(x, chr) {
-  x <- ifelse(grepl("^\\s*[<>]", chr), pct_number(chr), x)
-  out <- rep("gray", length(x))
-  out[!is.na(x) & x < 85] <- "red"
-  out[!is.na(x) & x >= 85 & x < 90] <- "orange"
-  out[!is.na(x) & x >= 90 & x < 95] <- "gold"
-  out[!is.na(x) & x >= 95] <- "darkgreen"
-  out
+# bands = coverage color bands (coverage_bands.R).
+mmr_colors <- function(x, chr, bands = coverage_bands()) {
+  x <- ifelse(grepl("^\\s*[<>]", chr), pct_number(chr, bands$blurred_offset), x)
+  coverage_band_color(x, bands)
 }
 
 # nonreporting_note: source note under the school tables (settings
 # notes$nonreporting_table, dashboard_settings.R); NULL leaves it out.
 # redacted_childcares_note: the same for the child care table
 # (notes$redacted_childcares).
+# bands: coverage color bands (coverage_bands.R).
 render_coverage_gt <- function(sorted_data,
                                table_type,
                                boundary_type,
                                selected_county,
                                selected_district,
                                nonreporting_note = default_settings()$notes$nonreporting_table,
-                               redacted_childcares_note = default_settings()$notes$redacted_childcares) {
+                               redacted_childcares_note = default_settings()$notes$redacted_childcares,
+                               bands = coverage_bands()) {
   area_name <- if (table_type == "School Vaccine Coverage" && boundary_type == "district") {
     selected_district
   } else {
@@ -158,7 +156,7 @@ render_coverage_gt <- function(sorted_data,
     ) %>%
     data_color(
       columns = full_vax_pct,
-      fn = function(x) mmr_colors(x, sorted_data$full_vax_pct_chr)
+      fn = function(x) mmr_colors(x, sorted_data$full_vax_pct_chr, bands)
     ) %>%
     cols_hide(columns = full_vax_pct_chr)
 
