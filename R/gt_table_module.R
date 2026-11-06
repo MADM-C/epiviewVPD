@@ -49,6 +49,9 @@
 #   Footnotes about the data, from the settings file (dashboard_settings.R);
 #   notes$nonreporting_table goes under the school coverage tables.
 #
+# bands
+#   Coverage color bands from the settings (coverage_bands.R).
+#
 # Reactive Inputs Used
 # --------------------
 # input$table_type
@@ -103,7 +106,8 @@ gtServer <- function(input, output, session,
                      cases,
                      counties,
                      districts = NULL,
-                     notes = default_settings()$notes) {
+                     notes = default_settings()$notes,
+                     bands = coverage_bands()) {
   # ---------- Build School Table (with demographics) ----------
 
   district_data <- build_district_lookup(districts)
@@ -245,7 +249,8 @@ gtServer <- function(input, output, session,
       input$gt_selected_county,
       input$gt_selected_district,
       nonreporting_note = notes$nonreporting_table,
-      redacted_childcares_note = notes$redacted_childcares
+      redacted_childcares_note = notes$redacted_childcares,
+      bands = bands
     )
   })
 
@@ -294,7 +299,8 @@ gtServer <- function(input, output, session,
         district = input$gt_selected_district,
         gt_sort_by = input$gt_sort_by,
         nonreporting_note = notes$nonreporting_table,
-        redacted_childcares_note = notes$redacted_childcares
+        redacted_childcares_note = notes$redacted_childcares,
+        coverage_bands = bands
       )
 
       # Render the report

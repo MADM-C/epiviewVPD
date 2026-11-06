@@ -159,6 +159,13 @@ check_settings <- function(settings, path) {
     }
   }
 
+  # Coverage cutoffs and colors (coverage_bands.R)
+  bands_problem <- tryCatch({
+    coverage_bands(settings$coverage_bins)
+    NULL
+  }, error = function(e) sub("^Settings ", "", conditionMessage(e)))
+  problems <- c(problems, bands_problem)
+
   if (length(problems) > 0) {
     stop("Problems in the settings file ", path, ":\n",
          paste0("  - ", problems, collapse = "\n"), call. = FALSE)

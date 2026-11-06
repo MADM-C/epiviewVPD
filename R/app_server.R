@@ -35,10 +35,10 @@
 # ============================================================
 
 app_server <- function(app_data, dashboard_config) {
-  # ==== Color Palette ====
-  pal_county <- county_palette(app_data$counties$full_vax_pct_num)
-
   # ==== Settings used by the modules ====
+  # Coverage cutoffs and colors (settings `coverage_bins`, coverage_bands.R)
+  bands <- coverage_bands(dashboard_config$coverage_bins,
+                          dashboard_config$suppression$blurred_offset)
   # Starting view for the maps (settings `map`, or fit to the counties)
   map_view <- dashboard_map_view(dashboard_config$map, app_data$counties)
   # Footnotes about the data (settings `notes`)
@@ -115,7 +115,7 @@ app_server <- function(app_data, dashboard_config) {
       output = output,
       session = session,
       counties = app_data$counties,
-      pal_county = pal_county,
+      bands = bands,
       districts = app_data$districts,
       map_view = map_view
     )
@@ -131,7 +131,8 @@ app_server <- function(app_data, dashboard_config) {
       counties = app_data$counties,
       selected_school_id = selected_school_id,
       format_vax_pct = format_vax_pct,
-      districts = app_data$districts
+      districts = app_data$districts,
+      bands = bands
     )
 
     # === Grade level Details Section ====
@@ -148,7 +149,8 @@ app_server <- function(app_data, dashboard_config) {
       counties = app_data$counties,
       districts = app_data$districts,
       notes = notes,
-      map_view = map_view
+      map_view = map_view,
+      bands = bands
     )
 
     # ==== GT Table Tab ====
@@ -164,7 +166,8 @@ app_server <- function(app_data, dashboard_config) {
       cases = app_data$cases,
       format_vax_pct = format_vax_pct,
       districts = app_data$districts,
-      notes = notes
+      notes = notes,
+      bands = bands
     )
 
     # ==== Measles Outbreak Tab ====

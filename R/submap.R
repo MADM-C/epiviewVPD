@@ -39,6 +39,9 @@
 #   Helper function used to format vaccination percentages consistently in
 #   labels, popups, and tables.
 #
+# bands
+#   Coverage color bands from the settings (coverage_bands.R).
+#
 # Reactive Inputs Used
 # --------------------
 # input$selected_county
@@ -76,7 +79,7 @@
 subMapServer <- function(input, output, session,
                          schools, facilities,
                          counties, selected_school_id, format_vax_pct,
-                         districts = NULL) {
+                         districts = NULL, bands = coverage_bands()) {
   # === Click school/daycare marker to update school ID and dropdown ===
   observeEvent(input$sub_map_marker_click, {
     clicked_raw <- input$sub_map_marker_click$id
@@ -253,7 +256,8 @@ subMapServer <- function(input, output, session,
       add_point_layers(
         point_type = input$point_type,
         school_data = boundary_schools_offset,
-        childcare_data = boundary_childcares
+        childcare_data = boundary_childcares,
+        bands = bands
       )
 
     # --- School District overlay (filtered to selected county) ---
@@ -279,7 +283,9 @@ subMapServer <- function(input, output, session,
 
     # --- Add legend for school/daycare cut-points ---
 
-    map <- legend_vax_cutpoints(map = map)
+    map <- add_coverage_legend(map, bands,
+                               title = "School/Child Care MMR (%)",
+                               missing_label = "Missing/Unknown")
     map
   })
 

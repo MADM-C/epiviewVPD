@@ -17,16 +17,10 @@ parse_vax_num <- function(x) {
 # are colored by the number they count as (pct_number(), load_app_data.R),
 # so ">95" counts as 96 (green) and ">80" as 81 (red), not always green.
 # ============================================================
-coverage_color <- function(value_raw, value_num) {
-  value_num <- ifelse(grepl("^\\s*[<>]", value_raw), pct_number(value_raw), value_num)
-  case_when(
-    is.na(value_raw) ~ "gray",
-    value_num < 85 ~ "red",
-    value_num < 90 ~ "orange",
-    value_num < 95 ~ "gold",
-    value_num >= 95 ~ "darkgreen",
-    TRUE ~ "gray"
-  )
+# bands = coverage color bands (coverage_bands.R).
+coverage_color <- function(value_raw, value_num, bands = coverage_bands()) {
+  value_num <- ifelse(grepl("^\\s*[<>]", value_raw), pct_number(value_raw, bands$blurred_offset), value_num)
+  coverage_band_color(value_num, bands)
 }
 
 # ============================================================

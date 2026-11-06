@@ -2,21 +2,6 @@
 # FUNCTIONS TO EXECUTE SUB MAP MODULE
 # ====================================================
 
-# ==== Helper function to decide on fill color for locations on submap ====
-get_fill_color <- function(vax_pct) {
-  vax_num <- suppressWarnings(as.numeric(vax_pct))
-
-  dplyr::case_when(
-    is.na(vax_pct) ~ "gray", # Missing/unknown
-    grepl("^>", vax_pct) ~ "darkgreen", # Blurred ('>95%')
-    vax_num < 85 ~ "red", # <85%
-    vax_num < 90 ~ "orange", # 85–89%
-    vax_num < 95 ~ "gold", # 90–94%
-    vax_num >= 95 ~ "darkgreen", # ≥95%
-    TRUE ~ "gray" # Fallback
-  )
-}
-
 # ==== Create map background for the submap ====
 
 base_submap <- function(boundary_shape) {
@@ -27,7 +12,11 @@ base_submap <- function(boundary_shape) {
 
 # ==== Add Markers for Schools & Childcares to Leaflet Map ====
 
-add_point_layers <- function(map, point_type, school_data = NULL, childcare_data = NULL) {
+# Dot colors come from full_vax_pct_num (load_app_data.R), so blurred values
+# (">95", "<5") are colored by the number they count as; bands =
+# coverage color bands (coverage_bands.R).
+add_point_layers <- function(map, point_type, school_data = NULL, childcare_data = NULL,
+                             bands = coverage_bands()) {
   show_schools <- point_type %in% c("Schools", "Schools and Child Cares")
   show_childcares <- point_type %in% c("Child Cares", "Schools and Child Cares")
   is_combined <- point_type == "Schools and Child Cares"
@@ -45,7 +34,7 @@ add_point_layers <- function(map, point_type, school_data = NULL, childcare_data
         stroke = TRUE,
         weight = ~ ifelse(n_at_location > 1, 2, 1),
         color = "black",
-        fillColor = ~ get_fill_color(full_vax_pct),
+        fillColor = ~ coverage_band_color(full_vax_pct_num, bands),
         fillOpacity = 0.9,
         layerId = ~school_id,
         group = if (is_combined) "Schools" else NULL,
@@ -82,7 +71,7 @@ add_point_layers <- function(map, point_type, school_data = NULL, childcare_data
         stroke = TRUE,
         weight = 1,
         color = "black",
-        fillColor = ~ get_fill_color(full_vax_pct),
+        fillColor = ~ coverage_band_color(full_vax_pct_num, bands),
         fillOpacity = 0.9,
         layerId = ~facility_id,
         group = if (is_combined) "Child Cares" else NULL,
@@ -166,25 +155,6 @@ legend_html <- HTML("
       <svg height='14' width='14'><circle cx='7' cy='7' r='4' stroke='black' stroke-width='1' fill='black' /></svg> Daycare
     </div>
   ")
-
-# ==== Create legend for facility vaccine coverage cut points ====
-
-legend_vax_cutpoints <- function(map) {
-  map |>
-    addLegend(
-      position = "bottomright",
-      colors = c("red", "orange", "gold", "darkgreen", "gray"),
-      labels = c(
-        "0-85", # red
-        "85-90", # orange
-        "90-95", # gold
-        "95-100", # dark green
-        "Missing/Unknown" # gray
-      ),
-      title = "School/Child Care MMR (%)",
-      opacity = 0.9
-    )
-}
 
 # ==== Vaccine coverage for boundary to display in submap title ====
 

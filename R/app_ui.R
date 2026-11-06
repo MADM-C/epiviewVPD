@@ -156,12 +156,12 @@ app_ui <- function(dashboard_config) {
     )
   )
 
+  # Color key on the Summary tab (settings `coverage_bins`, coverage_bands.R)
+  bands <- coverage_bands(dashboard_config$coverage_bins)
   coverage_color_key <- paste(
     sprintf(
       "<span class='coverage-badge' style='background:%s; color:%s;'>%s</span>",
-      vapply(dashboard_config$coverage_bins, `[[`, character(1), "background"),
-      vapply(dashboard_config$coverage_bins, `[[`, character(1), "color"),
-      vapply(dashboard_config$coverage_bins, `[[`, character(1), "label")
+      bands$background, bands$color, htmltools::htmlEscape(bands$label)
     ),
     collapse = "&nbsp; "
   )
