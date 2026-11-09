@@ -1,10 +1,11 @@
 ---
+title: "MMR Vaccination Coverage"
 output: html_document
 params:
   boundary: NULL
   school_data: NULL
   childcare_data: NULL
-  selected_district: NULL 
+  selected_district: NULL
   selected_county: NULL
   point_type: NULL
   selected_location: NULL
@@ -14,288 +15,64 @@ params:
   selected_school_id: NULL
   map_view: NULL
   coverage_bands: NULL
+  notes: NULL
+  features: NULL
+  settings: NULL
 ---
-<style>
-/* Document Width */
-.main-container {
-  max-width: 1200px !important;
-  margin-left: auto !important;
-  margin-right: auto !important;
-}
-
-/* Flexbox Row Container */
-.side-by-side-container {
-  display: flex !important;
-  flex-direction: row !important;
-  justify-content: space-between !important;
-  align-items: flex-start !important;
-  gap: 20px !important;
-  width: 100% !important;
-  margin-bottom: 35px !important;
-}
-
-/* Force EXACT 50% Width Columns (accounting for gap) */
-.side-by-side-container > div {
-  flex: 0 0 calc(50% - 10px) !important; /* Prevents flex shrink/grow completely */
-  width: calc(50% - 10px) !important;
-  max-width: calc(50% - 10px) !important;
-  box-sizing: border-box !important;
-}
-
-/* Ensure GT Tables take full column width without expanding it */
-.side-by-side-container .gt_table {
-  width: 100% !important;
-  max-width: 100% !important;
-  margin-left: 0 !important;
-  margin-right: 0 !important;
-  table-layout: fixed !important; /* Forces uniform table column distribution */
-}
-
-/* Fix Plot Image Container Scaling */
-.side-by-side-container img {
-  width: 100% !important;
-  max-width: 100% !important;
-  height: auto !important;
-  display: block !important;
-  margin-left: auto !important;
-  margin-right: 0 !important;
-}
-</style>
-
-## MMR Vaccination Coverage
-```{css, echo=FALSE}
-p{
-font-size: 18px;
-}
-```
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE)
-```
-
-```{r}
-# === Set Up ===
-boundary <- params$boundary
-school_data <- params$school_data
-childcare_data <- params$childcare_data
-selected_district <- params$selected_district
-selected_county <- params$selected_county
-point_type <- params$point_type
-selected_location <- params$selected_location
-district_data <- params$district_data
-county_data <- params$county_data
-grade_data <- params$grade_data
-selected_school_id <- params$selected_school_id
-# Coverage cutoffs and colors (coverage_bands.R); NULL = defaults
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, fig.align = "center")
+features <- if (is.null(params$features)) all_features() else params$features
 bands <- coverage_bands(params$coverage_bands)
-
-# --- Data Selection ---
-
-# Determine if selected_location is a school or child care
-
-if (selected_school_id %in% school_data$school_id && !selected_school_id %in% childcare_data$facility_id) {
-  school_id <- selected_school_id
-  childcare_id <- NULL
-} else {
-  childcare_id <- selected_school_id
-  school_id <- NULL
-}
-
+notes <- if (is.null(params$notes)) default_settings()$notes else params$notes
+selected <- select_facility(params$selected_school_id, params$school_data, params$childcare_data)
+if (is.null(selected)) selected <- select_facility(params$selected_location, params$school_data, params$childcare_data)
+is_school <- !is.null(selected) && selected$type == "school"
 ```
 
-### `r if (!is.null(school_id) && is.null(childcare_id)) {(school_data[which(school_data$school_id == school_id), "school_name"] %>% sf::st_drop_geometry() )} else {(subset(childcare_data, facility_id == childcare_id, select = facility_name) %>% sf::st_drop_geometry() )}`
-
-<!-- ================= ROW 1 ================= -->
-<div class="side-by-side-container">
-
-<div>
 ```{r}
-# === Grade Level/Child Care Details ===
-
-is_school <- school_id %in% school_data$school_id
-is_childcare <- childcare_id %in% childcare_data$facility_id
-
-if (!is.null(school_id)) {
-  metrics <- get_facility_metrics(
-    is_school = is_school,
-    is_childcare = is_childcare,
-    school_id = school_id,
-    facility_data = school_data,
-    county_data = county_data,
-    district_data = district_data,
-    grade_data = grade_data
+if (!is.null(selected)) {
+  htmltools::tagList(
+    htmltools::tags$h2(selected$name),
+    htmltools::tags$p(paste0(if (is_school) "School ID: " else "Child Care ID: ", selected$id))
   )
-  
-  summary_data <- tibble::tribble(
-  ~Metric, ~Value,
-  "School Type", metrics$school_type,
-  "Total Enrollment", as.character(metrics$total_enrollment),
-  "Schoolwide MMR Coverage", format_vax_pct(metrics$overall_cov),
-  "  Partially Vaccinated / No Doses", format_vax_pct(metrics$partial_vax),
-  "  Medical Exemption", format_vax_pct(metrics$med_exempt),
-  "  Non-Medical Exemption", format_vax_pct(metrics$nonmed_exempt),
-  paste0(metrics$county_name_school, " County MMR Coverage"), format_vax_pct(metrics$county_vax),
-  paste0(metrics$district_name, " MMR Coverage"), format_vax_pct(metrics$district_vax),
-  "District Home Languages", metrics$languages
-)
-  
-  summary_data |> 
-    gt() |> 
-    cols_label(Metric = "", Value = "") |> 
-    tab_header(title = md("**School Level Overview**")) |> 
-    tab_style(
-      style = list(
-        cell_fill(color = "#003865"),
-        cell_text(color = "white", weight = "bold")),
-      locations = cells_title()) |> 
-    tab_style(
-      style = cell_text(indent = px(15)),
-      locations = cells_body(
-        columns = Metric,
-        rows = Metric %in% c("  Partially Vaccinated / No Doses", "  Medical Exemption", "  Non-Medical Exemption")
-      )
-    ) |>
-  tab_options(
-    table.border.top.color       = "#88C5D3",
-    table.border.top.width       = px(2),
-    table.border.bottom.color    = "#88C5D3",
-    table.border.bottom.width    = px(2),
-    column_labels.border.bottom.color = "#88C5D3",
-    column_labels.border.bottom.width = px(2),
-    table_body.border.bottom.color    = "#88C5D3",
-    table.font.size              = px(13),
-    data_row.padding             = px(7),
-    column_labels.padding        = px(8),
-    table.background.color       = "#FFFFFF",
-    footnotes.font.size          = px(11),
-    row.striping.background_color = "#F7FBFC",
-    row.striping.include_stub     = FALSE
-  ) |> 
-    opt_row_striping()
-
-} else{
-  
-  metrics <- get_facility_metrics(
-    is_school = is_school,
-    is_childcare = is_childcare,
-    school_id = childcare_id,
-    facility_data = childcare_data,
-    county_data = county_data
-  )
-  
-  summary_data <- tibble::tribble(
-  ~Metric, ~Value,
-  "Total Enrollment", ifelse(is.na(metrics$total), "N/A", as.character(metrics$total)),
-  "Total Eligible", ifelse(is.na(metrics$total_elig), "N/A", as.character(metrics$total_elig)),
-  "Child Care MMR Coverage", format_vax_pct(metrics$overall_cov),
-  paste0(metrics$county_name_daycare, " County MMR Coverage"), format_vax_pct(metrics$county_vax))
-  
-  summary_data |> 
-    gt() |> 
-    cols_label(Metric = "", Value = "") |> 
-    tab_header(title = md("**Child Care Level Overview**")) |> 
-    tab_style(
-      style = list(
-        cell_fill(color = "#003865"),
-        cell_text(color = "white", weight = "bold")),
-      locations = cells_title()) |> 
-  tab_options(
-    table.border.top.color       = "#88C5D3",
-    table.border.top.width       = px(2),
-    table.border.bottom.color    = "#88C5D3",
-    table.border.bottom.width    = px(2),
-    column_labels.border.bottom.color = "#88C5D3",
-    column_labels.border.bottom.width = px(2),
-    table_body.border.bottom.color    = "#88C5D3",
-    table.font.size              = px(13),
-    data_row.padding             = px(7),
-    column_labels.padding        = px(8),
-    table.background.color       = "#FFFFFF",
-    footnotes.font.size          = px(11),
-    row.striping.background_color = "#F7FBFC",
-    row.striping.include_stub     = FALSE
-  ) |> 
-    opt_row_striping()
-  
 }
-
 ```
-</div>
-
-<div>
-
-```{r results="asis"}
-
-cat('<style> .leaflet-container { background: #FFF; } </style>')
-
-    rate <- 92.8
-
-    tagList(
-      h4(
-        "MMR Vaccine Coverage by County (K-12 Schools Only)",
-        style = "font-weight:600;"
-      ),
-      if (!is.na(rate)) {
-        tags$div(
-          paste0("Statewide MMR Coverage: ", rate, "%"),
-          style = "font-size:14px; color:#555; margin-bottom:8px;"
-        )
-      }
-    )
-
-# bring in statewide plot (same starting view as the dashboard's map)
-report_map_view <- if (is.null(params$map_view)) map_view_from_counties(county_data) else params$map_view
-is_district_mode <- !is.null(boundary) && boundary %in% c("district")
-if (is_district_mode && !is.null(district_data)) {
-      county_district_map_dashboard(district_data, bands, "district", report_map_view)
-  } else {
-    county_district_map_dashboard(county_data, bands, "county", report_map_view)
-  }
-
-```
-</div>
-
-</div>
-<!-- ================= ROW 2 ================= -->
-
-<div class="side-by-side-container">
-<div>
 
 ```{r}
-# === Grade Level Table ===
-
-if (isTRUE(is_school)) {
-if (is_nonresponder(school_id, school_data = school_data)) {
-  NULL
-  } else {
-    grade_level_table(school_id, grade_data = grade_data) 
-    }
-} else {
-    NULL
-  }
-
+if (features$facility_overview && !is.null(selected)) {
+  build_facility_overview_table(paste0(selected$type, ":", selected$id),
+    params$school_data, params$childcare_data, params$county_data, params$district_data)
+}
 ```
-
-</div>
-
-<div>
 
 ```{r}
-# === Grade Level Plot ===
-
-if (isTRUE(is_school)) {
-  if (is_nonresponder(school_id, school_data = school_data)) {
-  NULL
-  } else {
-    grade_level_plot(school_id, grade_data = grade_data, bands = bands)
-  }
-} else {
-  NULL
-}
-
-
+if (features$coverage_map) coverage_map_title(params$county_data)
 ```
 
-</div>
+```{r}
+if (features$coverage_map) {
+  district_mode <- isTRUE(params$boundary == "district") &&
+    !is.null(params$district_data) && nrow(params$district_data) > 0
+  build_coverage_map(if (district_mode) params$district_data else params$county_data,
+    boundary = if (district_mode) "district" else "county", bands = bands, map_view = params$map_view,
+    settings = params$settings)
+}
+```
 
-<div>
+```{r}
+if (features$grade_table && is_school) {
+  grade_level_table(grade_data = params$grade_data, school_id = selected$id)
+}
+```
+
+```{r, fig.width=7, fig.height=4}
+if (features$grade_plot && is_school) {
+  grade_level_plot(grade_data = params$grade_data, school_id = selected$id,
+    bands = bands, settings = params$settings)
+}
+```
+
+```{r results='asis'}
+if (!is.null(privacy_footnote_html(notes))) cat(privacy_footnote_html(notes))
+```

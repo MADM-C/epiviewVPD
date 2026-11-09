@@ -16,9 +16,10 @@ Imports:
   dplyr,
   DT,
   ggplot2,
+  grid,
   gt,
   htmltools,
-  knitr,
+  htmlwidgets,
   leaflet,
   rlang,
   rmarkdown,
@@ -27,14 +28,19 @@ Imports:
   shiny,
   stats,
   stringr,
-  tibble,
   tidygeocoder,
   tidyr,
-  tigris
+  tigris,
+  utils
 VignetteBuilder: knitr
 Suggests:
+  chromote,
+  devtools,
+  knitr,
   pkgload,
-  testthat (>= 3.0.0)
+  roxygen2,
+  testthat (>= 3.0.0),
+  webshot2
 Config/testthat/edition: 3
 Config/roxygen2/version: 8.1.1
 Encoding: UTF-8

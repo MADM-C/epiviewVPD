@@ -1,11 +1,14 @@
 # ==== GT TABLE HELPERS: vaccination coverage tables ====
-# TODO(#20): parts of this file are specific to measles and MMR
-# (labels such as "MMR Eligible", column names)
+# Parts of this file are specific to measles and MMR (labels such as
+# "MMR Eligible", column names).
 
 # Inputs below are the standard app data (load_app_data.R).
 
 # District names by district_id (districts without boundaries)
 build_district_lookup <- function(districts) {
+  if (is.null(districts) || !all(c("district_name", "district_id") %in% names(districts))) {
+    return(data.frame(district_name = character(), district_id = character()))
+  }
   districts %>%
     select(district_name, district_id) %>%
     st_drop_geometry()
@@ -14,13 +17,16 @@ build_district_lookup <- function(districts) {
 # `district_data` (from build_district_lookup()) is only used when
 # boundary = "district".
 build_school_table <- function(schools, boundary = "county", district_data = NULL) {
-  school_df <- schools %>%
-    st_drop_geometry()
+  school_df <- table_columns(schools, list(school_name = NA_character_,
+    school_type = NA_character_, county_name = NA_character_, district_id = NA_character_,
+    full_vax_pct = NA_character_, partial_vax_pct = NA_character_, enroll = NA_real_))
+  # Blanks the vaccination values of schools marked not reporting.
+  school_df <- mask_not_reported(school_df)
 
   school_df <- if (boundary == "district") {
     school_df %>%
       left_join(district_data, by = "district_id") %>%
-      mutate(area = district_name)
+      mutate(area = dplyr::coalesce(district_name, "No linked district"))
   } else {
     school_df %>%
       mutate(area = county_name)
@@ -43,20 +49,7 @@ build_school_table <- function(schools, boundary = "county", district_data = NUL
       total_enrollment = enroll,
       .keep = "none"
     ) %>%
-    filter(
-      !is.na(total_enrollment),
-      total_enrollment > 0,
-      !is.na(full_vax_pct_num),
-      # remove schools that did not report data (full & partial vax > 0)
-      (full_vax_pct_num > 0 |
-         partial_vax_pct_num > 0)
-    ) %>%
-    group_by(area, name, type, full_vax_pct_chr) %>%
-    summarise(
-      full_vax_pct = round(mean(full_vax_pct_num, na.rm = TRUE), 1),
-      total_enrollment = sum(total_enrollment, na.rm = TRUE),
-      .groups = "drop"
-    ) %>%
+    mutate(full_vax_pct = full_vax_pct_num) %>%
     select(
       area,
       name,
@@ -65,13 +58,14 @@ build_school_table <- function(schools, boundary = "county", district_data = NUL
       full_vax_pct_chr,
       total_enrollment
     ) %>%
-    # Downstream filtering, sorting, and labels expect a `county` or `district` column.
+    # Names the column `county` or `district`.
     rename(!!boundary := area)
 }
 
 build_daycare_table <- function(facilities) {
-  facilities %>%
-    st_drop_geometry() %>%
+  table_columns(facilities, list(county_name = NA_character_, facility_name = NA_character_,
+    full_vax_pct = NA_character_, enroll_eligible = NA_real_)) %>%
+    mask_not_reported() %>%
     mutate(
       county = county_name,
       name = facility_name,
@@ -82,7 +76,6 @@ build_daycare_table <- function(facilities) {
       total_enrollment = enroll_eligible,
       .keep = "none"
     ) %>%
-    filter(!is.na(total_enrollment)) %>%
     mutate(
       full_vax_pct = if_else(full_vax_pct > 100, 100, full_vax_pct, full_vax_pct)
     ) %>%
@@ -149,10 +142,10 @@ render_coverage_gt <- function(sorted_data,
     tab_header(
       title = paste(table_type, "Vaccination Summary:", area_name)
     ) %>%
-    # Display the original strings so blurred values keep their ">" sign.
+    # Shows the original strings, with the ">" sign on blurred values.
     fmt(
       columns = full_vax_pct,
-      fns = function(x) sorted_data$full_vax_pct_chr
+      fns = function(x) coverage_display(sorted_data$full_vax_pct_chr)
     ) %>%
     data_color(
       columns = full_vax_pct,
@@ -180,6 +173,9 @@ render_coverage_gt <- function(sorted_data,
           total_enrollment = "Enrollment"
         )
     }
+    if (all(is.na(sorted_data$type))) {
+      table_gt <- table_gt %>% cols_hide(columns = type)
+    }
     if (!is.null(nonreporting_note)) {
       table_gt <- table_gt %>%
         tab_source_note(source_note = nonreporting_note)
@@ -189,10 +185,7 @@ render_coverage_gt <- function(sorted_data,
       fmt(
         columns = full_vax_pct,
         fns = function(x) {
-          ifelse(is.na(sorted_data$full_vax_pct_chr),
-                 "Data redacted",
-                 sorted_data$full_vax_pct_chr
-          )
+          coverage_display(sorted_data$full_vax_pct_chr)
         }
       ) %>%
       cols_hide(columns = c(is_blurred)) %>%

@@ -39,11 +39,13 @@ run_dashboard <- function(data_dir = "App Data",
     suppressed_offset = dashboard_config$suppression$blurred_offset,
     redacted_codes = dashboard_config$suppression$redacted_codes,
     geography = dashboard_config$geography,
-    case_age_groups = dashboard_config$case_age_groups
+    case_age_groups = dashboard_config$case_age_groups,
+    features = dashboard_config$features,
+    case_data = dashboard_config$case_data
   )
 
   shiny::shinyApp(
-    ui = app_ui(dashboard_config),
+    ui = app_ui(dashboard_config, app_data),
     server = app_server(app_data, dashboard_config),
     options = list(...)
   )

@@ -1,280 +1,50 @@
 ---
-title: "<span style='font-size: 25px;'>MMR Vaccination and Measles Case Summary Figures</span>"
+title: "MMR Vaccination and Measles Case Summary Figures"
 output: html_document
 params:
-  school_table_district: NULL
-  school_table_county: NULL
-  boundary_type: NULL
-  daycare_table: NULL
-  case_table: NULL
+  schools: NULL
+  facilities: NULL
+  districts: NULL
+  cases: NULL
+  counties: NULL
   table_type: NULL
+  boundary_type: NULL
   county: NULL
   district: NULL
   gt_sort_by: NULL
-  nonreporting_note: NULL
-  redacted_childcares_note: NULL
+  notes: NULL
   coverage_bands: NULL
   case_age_groups: NULL
+  settings: NULL
+  features: NULL
 ---
 
-```{css, echo=FALSE}
-h1 {
-  text-align: center;
-}
-```
-
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(
-  echo = FALSE,
-  fig.align = "center",
-  message = FALSE,
-  warning = FALSE
-)
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, fig.align = "center")
+features <- if (is.null(params$features)) all_features() else params$features
+bands <- coverage_bands(params$coverage_bands)
+notes <- if (is.null(params$notes)) default_settings()$notes else params$notes
+historical <- isTRUE(params$table_type == "Historical Measles Cases")
+childcare <- isTRUE(params$table_type == "Child Care Vaccine Coverage")
+boundary <- if (isTRUE(params$boundary_type == "district")) "district" else "county"
 ```
 
-```{r}
-if (params$table_type == "School Vaccine Coverage" && params$boundary_type == "district") {
-  table_to_use <- params$school_table_district
-} else {
-  table_to_use <- switch(params$table_type,
-    "School Vaccine Coverage" = params$school_table_county,
-    "Child Care Vaccine Coverage" = params$daycare_table,
-    "Historical Measles Cases" = params$case_table
-  )
-}
-
-filtered_data <- if (params$table_type == "Historical Measles Cases" && params$county == "Statewide") {
-  table_to_use %>%
-    dplyr::group_by(year, age_group) %>%
-    dplyr::summarise(n_cases = sum(n_cases, na.rm = TRUE), .groups = "drop") %>%
-    dplyr::mutate(county = "Statewide")
-} else if (params$table_type == "School Vaccine Coverage" && params$boundary_type == "district") {
-  table_to_use %>%
-    dplyr::filter(district == params$district)
-} else {
-  table_to_use %>%
-    dplyr::filter(county == params$county)
-}
-```
-
-```{r, fig.height = 350 / 96, fig.width= 850 / 96}
-# --- Recreate Epi Curve Plot ---
-
-if (params$table_type == "Historical Measles Cases") {
-  all_years <- sort(unique(params$case_table$year))
-  min_year <- min(all_years, na.rm = TRUE)
-  max_year <- max(all_years, na.rm = TRUE)
-
-  county_years <- data.frame(year = seq(min_year, max_year, by = 1))
-  base_df <- params$case_table
-
-  county_cases <- if (params$county == "Statewide") {
-    base_df %>%
-      dplyr::group_by(year) %>%
-      dplyr::summarise(cases = sum(n_cases, na.rm = TRUE), .groups = "drop") %>%
-      dplyr::right_join(county_years, by = "year") %>%
-      dplyr::mutate(cases = tidyr::replace_na(cases, 0L))
-  } else {
-    base_df %>%
-      dplyr::filter(county == params$county) %>%
-      dplyr::group_by(year) %>%
-      dplyr::summarise(cases = sum(n_cases, na.rm = TRUE), .groups = "drop") %>%
-      dplyr::right_join(county_years, by = "year") %>%
-      dplyr::mutate(cases = tidyr::replace_na(cases, 0L))
-  }
-  ggplot2::ggplot(county_cases, ggplot2::aes(x = year, y = cases)) +
-    # --- Navy bars with soft edges ---
-    ggplot2::geom_col(width = 0.75, fill = "#1E3A66") +
-    # --- Yellow labels for readability ---
-    ggplot2::geom_text(
-      ggplot2::aes(label = ifelse(cases > 0, cases, "")),
-      vjust = -0.5, size = 4.5, color = "black", fontface = "bold"
-    ) +
-    ggplot2::labs(
-      x = "Year",
-      y = "Number of Cases",
-      title = paste0(
-        "Measles Cases by Year: ",
-        ifelse(params$county == "Statewide", "", "County of "),
-        params$county
-      )
-    ) +
-    ggplot2::scale_x_continuous(
-      breaks = seq(min_year, max_year, 1),
-      expand = ggplot2::expansion(add = 0.3)
-    ) +
-    ggplot2::scale_y_continuous(
-      breaks = scales::pretty_breaks(n = 8),
-      labels = scales::label_number(accuracy = 1),
-      expand = ggplot2::expansion(mult = c(0, 0.15))
-    ) +
-    ggplot2::theme_minimal(base_size = 14) +
-    ggplot2::theme(
-      plot.background = ggplot2::element_rect(fill = "white", color = NA),
-      panel.background = ggplot2::element_rect(fill = "white", color = NA),
-      plot.title = ggplot2::element_text(hjust = 0.5, face = "bold", color = "#1E3A66"),
-      axis.title.x = ggplot2::element_text(face = "bold", color = "#1E3A66"),
-      axis.title.y = ggplot2::element_text(face = "bold", color = "#1E3A66"),
-      axis.text = ggplot2::element_text(color = "#1E3A66"),
-      panel.grid.minor = ggplot2::element_blank(),
-      panel.grid.major.x = ggplot2::element_blank()
-    )
-}
-```
-
-
-```{r}
-# --- Recreate GT Table for Historical ---
-
-# No rows (e.g. a county with no recorded cases): show a message instead of
-# a table. This has to be one if/else with the cases table below: in an R
-# Markdown chunk, return() doesn't skip the code that follows it.
-if (nrow(filtered_data) == 0) {
-  gt::gt(data.frame(
-    Message = if (params$table_type == "Historical Measles Cases") {
-      "No historical cases for selected county"
-    } else {
-      "No data for selected location"
-    }
-  ))
-} else if (params$table_type == "Historical Measles Cases") {
-  # Same table as the Summary tab (render_cases_gt(), table_measles_functions.R)
-  render_cases_gt(filtered_data, params$county,
-                  case_age_groups(params$case_age_groups, params$case_table$age_group))
+```{r, fig.height=350/96, fig.width=850/96}
+if (historical && features$epicurve) {
+  plot_epicurve(params$cases, params$county, settings = params$settings,
+    counties = case_county_universe(params$counties))
 }
 ```
 
 ```{r}
-# === Schools / Daycares view ===
-# Skipped when there are no rows; the chunk above shows a message instead.
-if (nrow(filtered_data) > 0 && params$table_type %in% c(
-  "School Vaccine Coverage",
-  "Child Care Vaccine Coverage"
-)) {
-  sort_col <- if (!is.null(params$gt_sort_by) &&
-    params$table_type %in% c(
-      "School Vaccine Coverage",
-      "Child Care Vaccine Coverage"
-    )) {
-    params$gt_sort_by
-  } else {
-    "full_vax_pct"
-  }
-
-  # Guard: if sort_col not present, fall back
-  if (!sort_col %in% names(filtered_data)) sort_col <- "full_vax_pct"
-
-  # --- Sorting logic ---
-
-  if (params$table_type == "Child Care Vaccine Coverage" || (params$table_type == "School Vaccine Coverage" && params$boundary_type == "county")) {
-    if (sort_col %in% c("name", "county")) {
-      # Case-insensitive alphabetical sort
-      sorted_data <- filtered_data %>%
-        dplyr::arrange(tolower(.data[[sort_col]]))
-    } else {
-      # Numeric sorts: high → low
-      sorted_data <- filtered_data %>%
-        dplyr::arrange(dplyr::desc(.data[[sort_col]]))
-    }
-  } else {
-    if (sort_col %in% c("name", "district")) {
-      # Case-insensitive alphabetical sort
-      sorted_data <- filtered_data %>%
-        dplyr::arrange(tolower(.data[[sort_col]]))
-    } else {
-      # Numeric sorts: high → low
-      sorted_data <- filtered_data %>%
-        dplyr::arrange(dplyr::desc(.data[[sort_col]]))
-    }
-  }
-
-  # --- Build the gt table ---
-
-  if (params$table_type == "Child Care Vaccine Coverage" || (params$table_type == "School Vaccine Coverage" && params$boundary_type == "county")) {
-    table_gt <- sorted_data %>%
-      gt::gt() %>%
-      gt::tab_header(
-        title = paste(params$table_type, "Vaccination Summary:", params$county)
-      ) %>%
-      # Keep the ">" sign in the displayed values
-      gt::fmt(
-        columns = full_vax_pct,
-        fns = function(x) sorted_data$full_vax_pct_chr
-      ) %>%
-      # Apply custom color logic
-      gt::data_color(
-        columns = full_vax_pct,
-        colors = function(x) mmr_colors(x, sorted_data$full_vax_pct_chr, coverage_bands(params$coverage_bands))
-      ) %>%
-      gt::cols_hide(columns = full_vax_pct_chr)
-  } else if (params$table_type == "School Vaccine Coverage" && params$boundary_type == "district") {
-    table_gt <- sorted_data %>%
-      gt::gt() %>%
-      gt::tab_header(
-        title = paste(params$table_type, "Vaccination Summary:", params$district)
-      ) %>%
-      # Keep the ">" sign in the displayed values
-      gt::fmt(
-        columns = full_vax_pct,
-        fns = function(x) sorted_data$full_vax_pct_chr
-      ) %>%
-      # Apply custom color logic
-      gt::data_color(
-        columns = full_vax_pct,
-        fn = function(x) mmr_colors(x, sorted_data$full_vax_pct_chr, coverage_bands(params$coverage_bands))
-      ) %>%
-      gt::cols_hide(columns = full_vax_pct_chr)
-  }
-
-  if (params$table_type == "School Vaccine Coverage") {
-    if (params$boundary_type == "county") {
-      table_gt <- table_gt %>%
-        gt::cols_label(
-          county           = "County",
-          name             = "School Name",
-          type             = "School Type",
-          full_vax_pct     = "MMR %",
-          total_enrollment = "Enrollment"
-        )
-    } else {
-      table_gt <- table_gt %>%
-        gt::cols_label(
-          district         = "School District",
-          name             = "School Name",
-          type             = "School Type",
-          full_vax_pct     = "MMR %",
-          total_enrollment = "Enrollment"
-        )
-    }
-    # Source note from the dashboard settings (notes$nonreporting_table)
-    if (!is.null(params$nonreporting_note)) {
-      table_gt <- table_gt %>%
-        gt::tab_source_note(source_note = params$nonreporting_note)
-    }
-  } else if (params$table_type == "Child Care Vaccine Coverage") {
-    table_gt <- table_gt %>%
-      gt::fmt(
-        columns = full_vax_pct,
-        fns = function(x) {
-          ifelse(is.na(sorted_data$full_vax_pct_chr),
-            "Data redacted",
-            sorted_data$full_vax_pct_chr
-          )
-        }
-      ) %>%
-      gt::cols_hide(columns = c(is_blurred)) %>%
-      gt::cols_label(
-        county           = "County",
-        name             = "Child Care Name",
-        full_vax_pct     = "MMR %",
-        total_enrollment = "MMR Eligible"
-      )
-    # Source note from the dashboard settings (notes$redacted_childcares)
-    if (!is.null(params$redacted_childcares_note)) {
-      table_gt <- table_gt %>%
-        gt::tab_source_note(source_note = params$redacted_childcares_note)
-    }
-  }
-  table_gt
+if (historical && features$cases_summary) {
+  render_cases_gt(params$cases, params$county,
+    settings = params$settings, counties = case_county_universe(params$counties))
+} else if (!historical && ((childcare && features$childcare_summary) ||
+                           (!childcare && features$school_summary))) {
+  build_coverage_table(params$schools, params$facilities, params$districts,
+    table_type = if (childcare) "childcare" else "school", boundary_type = boundary,
+    selected_county = params$county, selected_district = params$district,
+    sort_by = params$gt_sort_by, notes = notes, bands = bands)
 }
 ```

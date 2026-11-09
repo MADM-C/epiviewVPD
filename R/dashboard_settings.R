@@ -21,6 +21,9 @@
 # Output: the template's settings (inst/config/template.R), the defaults
 #         for every setting. Also used as default arguments by the
 #         modules that show the notes.
+#' Default dashboard configuration
+#' @return A named list of settings.
+#' @export
 default_settings <- function() {
   template <- system.file("config", "template.R", package = "epiviewVPD")
   source(template, local = new.env())$value
@@ -30,25 +33,80 @@ default_settings <- function() {
 # Output: the settings list, with the template's values filled in for
 #         anything it leaves out; stops with one message listing every
 #         problem in the settings
+#' Read a dashboard settings script
+#' @param path Path to an R script whose last expression is a settings list.
+#' @return A validated settings list with defaults filled in.
+#' @export
 read_dashboard_settings <- function(path) {
   settings <- source(path, local = new.env())$value
+  prepare_dashboard_settings(settings, path)
+}
+
+#' Prepare dashboard settings from a list
+#' @param settings A partial named list of dashboard settings.
+#' @param path A label used in validation messages.
+#' @return A validated settings list with defaults filled in.
+#' @export
+prepare_dashboard_settings <- function(settings = list(), path = "<settings>") {
+  if (inherits(settings, "epiview_settings")) return(settings)
   if (!is.list(settings)) {
     stop("The settings file ", path, " must end with a list of settings.", call. = FALSE)
   }
+  if ("features" %in% names(settings)) normalize_features(settings$features)
   defaults <- default_settings()
   warn_unknown_settings(settings, defaults, path)
   settings <- merge_settings(defaults, settings)
-  check_settings(settings, path)
+  structure(check_settings(settings, path), class = c("epiview_settings", "list"))
 }
 
+#' Dashboard feature switches
+#'
+#' The basic dashboard needs only `counties.csv`, `schools.csv`, `cases.csv`,
+#' and county boundaries. Features that use more data start switched off.
+#'
+#' @return A named list of logical switches: `default_features()` has the basic
+#'   dashboard switched on, `all_features()` has every feature switched on.
+#' @export
+default_features <- function() {
+  list(
+    coverage_map = TRUE, cases_map = TRUE, facility_map = TRUE, facility_overview = FALSE,
+    grade_plot = FALSE, grade_table = FALSE, school_summary = TRUE, childcare_summary = FALSE,
+    cases_summary = TRUE, epicurve = TRUE, proximity_map = FALSE, proximity_table = FALSE,
+    about = TRUE, resources = FALSE
+  )
+}
+
+#' @rdname default_features
+#' @export
+all_features <- function() {
+  lapply(default_features(), function(x) TRUE)
+}
+
+normalize_features <- function(features = default_features()) {
+  defaults <- default_features()
+  if (!is.list(features) || (length(features) &&
+      (is.null(names(features)) || anyNA(names(features)) || any(!nzchar(names(features))) || anyDuplicated(names(features))))) {
+    stop("features has to be a named list of TRUE/FALSE switches", call. = FALSE)
+  }
+  unknown <- setdiff(names(features), names(defaults))
+  if (length(unknown)) stop("Unknown feature switch: ", paste(unknown, collapse = ", "), call. = FALSE)
+  bad <- names(features)[!vapply(features, function(x) is.logical(x) && length(x) == 1L && !is.na(x), TRUE)]
+  if (length(bad)) stop("features switches have to be TRUE or FALSE: ", paste(bad, collapse = ", "), call. = FALSE)
+  defaults[names(features)] <- features
+  defaults
+}
+
+dashboard_features <- function(settings) normalize_features(settings$features)
+feature_enabled <- function(features, name) isTRUE(features[[name]])
+
 # Names a settings file may use besides the template's own (see the
-# template's comments): map, notes$enrollment, geography$year
-OPTIONAL_SETTINGS <- c("map", "notes$enrollment", "geography$year")
+# template's comments): map view entries, notes$enrollment, geography$year
+OPTIONAL_SETTINGS <- c("map", "map$center", "map$zoom", "map$max_bounds", "notes$enrollment", "geography$year")
 
 # Input:  settings as written in the file, the template's settings, and
 #         the file's path (for the message)
 # Output: none; warns about names the dashboard doesn't know (usually a
-#         misspelling), which would otherwise be ignored silently
+#         misspelling)
 warn_unknown_settings <- function(settings, defaults, path) {
   known <- c(names(defaults), OPTIONAL_SETTINGS)
   for (name in names(defaults)) {
@@ -100,7 +158,7 @@ check_settings <- function(settings, path) {
 
   # These have to be lists, e.g. case_years = list(min = 2010, ...)
   not_list <- character(0)
-  for (name in c("case_years", "proximity", "map", "suppression", "geography")) {
+  for (name in c("case_years", "proximity", "map", "suppression", "geography", "case_data")) {
     if (!is.null(settings[[name]]) && !is.list(settings[[name]])) {
       problems <- c(problems, paste0(name, " has to be a list, e.g. ", name, " = list(...) as in the template"))
       settings[[name]] <- NULL
@@ -108,8 +166,17 @@ check_settings <- function(settings, path) {
     }
   }
 
+  feature_problem <- tryCatch({
+    settings$features <- normalize_features(settings$features)
+    NULL
+  }, error = function(e) conditionMessage(e))
+  problems <- c(problems, feature_problem)
+  policy <- settings$case_data$missing_records
+  if (!is.character(policy) || length(policy) != 1L || is.na(policy) || !policy %in% c("unknown", "zero")) {
+    problems <- c(problems, "case_data$missing_records has to be 'unknown' or 'zero'")
+  }
+
   # How withheld values appear in the data; NULL means exact numbers
-  # (nothing withheld, no blurred values counted past their number)
   if (is.null(settings$suppression$blurred_offset)) settings$suppression$blurred_offset <- 0
   if (is.null(settings$suppression$redacted_codes)) settings$suppression$redacted_codes <- character(0)
   offset <- settings$suppression$blurred_offset
@@ -120,14 +187,14 @@ check_settings <- function(settings, path) {
     problems <- c(problems, "suppression$redacted_codes has to be text, e.g. c(\"*\", \"S\")")
   }
 
-  # Years on the historical cases slider
+  # Years on the historical cases slider; NULL takes them from cases.csv
   years <- settings$case_years
-  if ("case_years" %in% not_list) {
-    # already reported above
-  } else if (!is_number(years$min) || !is_number(years$max) || !is_number(years$selected, 2)) {
-    problems <- c(problems, "case_years needs min and max (one year each) and selected (two years), e.g. list(min = 2010, max = 2025, selected = c(2015, 2020))")
-  } else if (years$min > years$max || any(years$selected < years$min | years$selected > years$max)) {
-    problems <- c(problems, "case_years$selected has to be between case_years$min and case_years$max")
+  if (!is.null(years)) {
+    if (!is_number(years$min) || !is_number(years$max) || !is_number(years$selected, 2)) {
+      problems <- c(problems, "case_years needs min and max (one year each) and selected (two years), e.g. list(min = 2010, max = 2025, selected = c(2015, 2020))")
+    } else if (years$min > years$max || any(years$selected < years$min | years$selected > years$max)) {
+      problems <- c(problems, "case_years$selected has to be between case_years$min and case_years$max")
+    }
   }
 
   # Proximity tool's starting coverage threshold (percent)
@@ -139,10 +206,13 @@ check_settings <- function(settings, path) {
   # Starting view for the maps
   map <- settings$map
   if (!is.null(map)) {
-    unknown <- setdiff(names(map), c("center", "zoom", "max_bounds"))
+    unknown <- setdiff(names(map), c("center", "zoom", "max_bounds", "basemap"))
     if (length(unknown) > 0) {
       problems <- c(problems, paste0("map has unknown entries: ", paste(unknown, collapse = ", "),
-                                     " (it can have center, zoom and max_bounds)"))
+                                     " (it can have center, zoom, max_bounds and basemap)"))
+    }
+    if (!is.null(map$basemap) && (!is.character(map$basemap) || length(map$basemap) != 1L || is.na(map$basemap) || !nzchar(map$basemap))) {
+      problems <- c(problems, "map$basemap has to name a Leaflet tile provider, or NULL for a tile-free map")
     }
     if (!is.null(map$center) || !is.null(map$zoom)) {
       if (!is_number(map$center, 2) || !is_number(map$zoom)) {

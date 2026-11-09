@@ -1,70 +1,38 @@
-# Builds HTML hover labels for school/child care markers
-# Parameters:
-#   facilities: facility data with facility_name, full_vax_pct, partial_vax_pct, contact_info
-#   low_vaccine: if TRUE, appends " (LOW VACCINE)" for facilities that report data
+# Labels and layer helpers used by the Leaflet maps.
 facility_labels <- function(facilities, low_vaccine = FALSE) {
-  # designate non-reporting schools as "Not Available"
-  not_available <- facilities$full_vax_pct == "0" & facilities$partial_vax_pct == "0"
-  vax_text <- ifelse(not_available, "Not Available", facilities$full_vax_pct)
-  
-  if (low_vaccine) {
-    # only display "low vaccine" label for schools w/data, still highlight the not available data, but don't note as low vaccine
-    vax_text <- paste0(vax_text, ifelse(not_available, "", " (LOW VACCINE)"))
-  }
-  
-  has_contact <- !is.na(facilities$contact_info) &
-    facilities$contact_info != "" &
-    facilities$contact_info != "N/A"
-  
-  label_text <- paste0(
-    facilities$facility_name, " - ", vax_text,
-    ifelse(has_contact, paste0("<br>", facilities$contact_info), "")
-  )
-  
-  lapply(label_text, htmltools::HTML)
+  facilities <- map_coverage_data(facilities, coverage_bands())
+  vax_text <- map_coverage_label(facilities$full_vax_pct)
+  known <- !is.na(facilities$full_vax_pct_num)
+  if (low_vaccine) vax_text <- paste0(vax_text, ifelse(known, " (LOW VACCINE)", ""))
+  contact <- if ("contact_info" %in% names(facilities)) facilities$contact_info else rep("", nrow(facilities))
+  has_contact <- !is.na(contact) & nzchar(contact) & contact != "N/A"
+  labels <- paste0(map_text(facilities$facility_name), " - ", map_text(vax_text),
+                    ifelse(has_contact, paste0("<br>", map_text(contact)), ""))
+  lapply(labels, htmltools::HTML)
 }
 
-# Adds school/child care circle markers to a leaflet map or leafletProxy
-# Returns the map unchanged if there is nothing to draw
 add_facility_markers <- function(map, facilities,
                                  radius = 3, color = "gray", fill_opacity = 0.7,
-                                 group = "School/Child Care Markers",
-                                 low_vaccine = FALSE) {
-  if (is.null(facilities) || nrow(facilities) == 0 || !"geometry" %in% names(facilities)) {
-    return(map)
-  }
-  coords <- sf::st_coordinates(facilities$geometry)
-  if (nrow(coords) == 0) {
-    return(map)
-  }
-  
-  map %>%
-    addCircleMarkers(
-      lng = coords[, 1], lat = coords[, 2],
-      radius = radius, color = color, fillColor = color, fillOpacity = fill_opacity,
-      group = group,
-      label = facility_labels(facilities, low_vaccine = low_vaccine),
-      labelOptions = labelOptions(noHide = FALSE, textOnly = FALSE, direction = "auto")
-    )
+                                 group = "School/Child Care Markers", low_vaccine = FALSE) {
+  facilities <- map_points(facilities)
+  if (is.null(facilities) || !nrow(facilities)) return(map)
+  coords <- sf::st_coordinates(facilities)
+  ids <- if ("facility_id" %in% names(facilities)) {
+    paste0(group, ":", if ("facility_type" %in% names(facilities)) facilities$facility_type else "facility", ":", facilities$facility_id)
+  } else NULL
+  leaflet::addCircleMarkers(map, lng = coords[, 1], lat = coords[, 2],
+    radius = radius, color = color, fillColor = color, fillOpacity = fill_opacity,
+    layerId = ids, group = group, label = facility_labels(facilities, low_vaccine),
+    labelOptions = leaflet::labelOptions(noHide = FALSE, textOnly = FALSE, direction = "auto"))
 }
 
-# Adds healthcare center circle markers to a leaflet map or leafletProxy
-# Returns the map unchanged if there is nothing to draw
 add_healthcare_markers <- function(map, healthcare) {
-  if (is.null(healthcare) || nrow(healthcare) == 0 || !"geometry" %in% names(healthcare)) {
-    return(map)
-  }
-  coords <- sf::st_coordinates(healthcare$geometry)
-  if (nrow(coords) == 0) {
-    return(map)
-  }
-  
-  tooltips <- ifelse(!is.na(healthcare$healthcare_name), healthcare$healthcare_name, "Unnamed Healthcare Center")
-  map %>%
-    addCircleMarkers(
-      lng = coords[, 1], lat = coords[, 2],
-      radius = 3, color = "green", fillColor = "green", fillOpacity = 0.7,
-      group = "Healthcare Centers",
-      label = tooltips
-    )
+  healthcare <- map_points(healthcare)
+  if (is.null(healthcare) || !nrow(healthcare)) return(map)
+  coords <- sf::st_coordinates(healthcare)
+  name <- if ("healthcare_name" %in% names(healthcare)) healthcare$healthcare_name else healthcare$name
+  tooltips <- ifelse(!is.na(name) & nzchar(name), name, "Unnamed Healthcare Center")
+  leaflet::addCircleMarkers(map, lng = coords[, 1], lat = coords[, 2], radius = 3,
+    color = "green", fillColor = "green", fillOpacity = 0.7,
+    group = "Healthcare Centers", label = tooltips)
 }

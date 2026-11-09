@@ -4,18 +4,21 @@
 \alias{example_data_dir}
 \title{Folder of example data}
 \usage{
-example_data_dir()
+example_data_dir(type = c("basic", "full"))
+}
+\arguments{
+\item{type}{\code{"basic"} for the files the basic dashboard needs (counties,
+schools, cases and county boundaries, with only the required columns),
+or \code{"full"} for every file the package can use.}
 }
 \value{
 Path to the example data folder.
 }
 \description{
 Returns the path to the made-up example data that comes with the
-package (inst/extdata/example). The files are in the same format
-\code{\link[=run_dashboard]{run_dashboard()}} reads from \code{data_dir}, so the dashboard can be
-tried out, or tested, without real data. Everything in it is
-invented, including the state itself: its counties, school districts,
-boundaries, schools, child cares, healthcare centers and numbers.
+package. The files are in the same format \code{\link[=run_dashboard]{run_dashboard()}} reads from
+\code{data_dir}, so the dashboard can be tried out, or tested, without real
+data. Everything in it is invented, including the state itself.
 }
 \examples{
 example_data_dir()
