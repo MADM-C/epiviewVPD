@@ -23,9 +23,9 @@
 #' @export
 #' @examples
 #' \dontrun{
-#' run_dashboard(data_dir = "App Data")
+#' run_dashboard(data_dir = "app_data", config = "my_settings.R")
 #' }
-run_dashboard <- function(data_dir = "App Data",
+run_dashboard <- function(data_dir = "app_data",
                           config = system.file("config", "template.R", package = "epiviewVPD"),
                           ...) {
   if (!file.exists(config)) {

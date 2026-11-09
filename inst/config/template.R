@@ -6,7 +6,7 @@
 #
 #   file.copy(system.file("config", "template.R", package = "epiviewVPD"), "my_settings.R")
 #   # edit my_settings.R, then:
-#   run_dashboard(data_dir = "App Data", config = "my_settings.R")
+#   run_dashboard(data_dir = "app_data", config = "my_settings.R")
 #
 # This is also the dashboard's default when no settings file is given.
 # Lines marked "CHANGE" are the ones most states will want to fill in.

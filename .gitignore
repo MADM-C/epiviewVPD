@@ -53,5 +53,5 @@ rsconnect/
 .quarto
 
 # Dev Ignore
-/App Data
+/app_data
 data_wrangling/
