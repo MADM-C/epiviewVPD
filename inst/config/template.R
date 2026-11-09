@@ -9,18 +9,40 @@
 #   run_dashboard(data_dir = "App Data", config = "my_settings.R")
 #
 # This is also the dashboard's default when no settings file is given.
-# The wording here is neutral (no state, agency or organization named),
-# so the dashboard runs as-is. Lines marked "CHANGE" are the ones most
-# states will want to fill in. Anything set to NULL is hidden (keep the
-# line and write NULL). A line you delete gets the value written here;
-# lists without names (faq, definitions, data_notes, case_studies, ...)
-# are replaced as a whole, so list every entry you want.
-# Logos and case study files go in the same folder as your settings
-# file. inst/config/measles_mn.R shows a filled-in example.
+# Lines marked "CHANGE" are the ones most states will want to fill in.
+# Anything set to NULL is hidden (keep the line and write NULL). A line
+# you delete gets the value written here; lists without names (faq,
+# definitions, data_notes, case_studies, ...) are replaced as a whole, so
+# list every entry you want. Logos and case study files go in the same
+# folder as your settings file. inst/config/measles_mn.R shows a
+# filled-in example.
 # ============================================================
 
 
 list(
+  # The parts of the dashboard to show. The basic dashboard needs only
+  # counties.csv, schools.csv, cases.csv and county boundaries. The switches
+  # set to FALSE add more; most need more data files (see the "Adding more"
+  # guide). Optional districts are used whenever their files are supplied.
+  features = list(
+    coverage_map = TRUE, cases_map = TRUE, facility_map = TRUE,
+    school_summary = TRUE, cases_summary = TRUE, epicurve = TRUE,
+    about = TRUE,
+    facility_overview = FALSE,   # details panel and report for a selected school
+    grade_plot = FALSE,          # grade-level chart (needs grades.csv)
+    grade_table = FALSE,         # grade-level table (needs grades.csv)
+    childcare_summary = FALSE,   # child care table (needs facilities.csv)
+    proximity_map = FALSE,       # search for low coverage near a location
+    proximity_table = FALSE,     # results table for that search
+    resources = FALSE            # Resources tab (FAQ, links, case studies)
+  ),
+  # A county/year/age combination with no row in cases.csv counts as zero.
+  # Choose "unknown" if your data source may leave out unreported combinations.
+  # Blank or withheld values in the file remain unknown with either setting.
+  case_data = list(missing_records = "zero"),
+  # basemap: a Leaflet provider name, or NULL for no background map.
+  # Add center/zoom/max_bounds here to set the view (see below).
+  map = list(basemap = "Esri.WorldTopoMap"),
   app = list(
     title = "EpiView: MMR Coverage and Measles",
     last_updated = NULL,   # CHANGE: e.g. "January 15, 2026" (shown in the footer)
@@ -39,7 +61,10 @@ list(
     email = NULL
   ),
   funding = NULL,          # CHANGE: funding statement for the footer, or NULL
-  case_years = list(min = 2010, max = 2025, selected = c(2015, 2020)),   # CHANGE: years in your case data
+  # Years on the historical cases map slider. NULL uses the first and last
+  # year in cases.csv and opens on all of them. To set them yourself:
+  #   case_years = list(min = 2010, max = 2025, selected = c(2015, 2020)),
+  case_years = NULL,
   # CHANGE (optional): age groups of the historical cases, written as in
   # the age_group column of cases.csv, in the order to show them, e.g.
   #   case_age_groups = c("0-4", "5-11", "12-19", "20-49", "50+", "Unknown"),
@@ -51,13 +76,14 @@ list(
     default_threshold = 85,
     address_placeholder = "e.g. 123 Main St, City, ST 00000"
   ),
-  # Starting view for the maps. Leave `map` out (as here) to fit the maps
-  # to your county boundaries, or set e.g.
+  # Starting view for the maps. Leave center and zoom out (as here) to
+  # fit the maps to your county boundaries, or add to `map` e.g.
   #   map = list(center = c(lng = -98.6, lat = 39.8), zoom = 6,
   #              max_bounds = c(-105, 35, -92, 45)),
   # center (longitude and latitude, named lng and lat) and zoom go
   # together. max_bounds (west, south, east, north) limits how far the
   # maps can be moved; on its own it keeps the fit to your counties.
+  # The proximity map uses these limits too.
   # Footnotes about where the data come from; NULL removes a note.
   # CHANGE: describe your own suppression rules (e.g. "fewer than 10
   # students"). For an internal dashboard with exact numbers, set the
@@ -67,7 +93,7 @@ list(
   # labels then get a "*" pointing to it.
   notes = list(
     nonreporting_school = "MMR vaccination coverage is unavailable for schools that did not report coverage data.",
-    nonreporting_table = "Schools that did not report MMR vaccination coverage are not displayed.",
+    nonreporting_table = "Schools with unavailable MMR vaccination coverage remain listed with their known details. Unknown or withheld coverage is not treated as zero.",
     redacted = "Redacted values were withheld to protect privacy.",
     blurred = "Blurred values (e.g., '>95%') are shown as a range to protect privacy.",
     redacted_grades = "Grade-level vaccination data are redacted to protect privacy.",
@@ -75,9 +101,8 @@ list(
   ),
   # CHANGE: your state's two-letter code. The dashboard downloads the
   # county and school district boundaries for it from the U.S. Census
-  # Bureau (and keeps a copy, so it only downloads them once). A data
-  # folder with its own county_boundaries.geojson and
-  # district_boundaries.geojson uses those instead, as the example data does.
+  # Bureau and keeps a copy. If the data folder has its own
+  # county_boundaries.geojson and district_boundaries.geojson, those are used.
   #   district_type: "unified" (default), "elementary" or "secondary"
   #   year: Census year of the boundaries; leave it out for the tigris
   #     package's default year
@@ -107,9 +132,9 @@ list(
     # CHANGE: the highlighted introduction at the top of the About tab
     about_callout = "Measles is a highly contagious respiratory disease that can cause serious complications, including hospitalization and death. The measles, mumps, and rubella (MMR) vaccine is highly effective at preventing infection and is the best way to prevent illness from measles. Because measles spreads so easily, at least 95% of the population needs to be vaccinated to prevent outbreaks and protect communities.",
     # CHANGE: name your data sources and the years they cover
-    about_body = "This dashboard displays school and child care immunization data and historical measles case data. Vaccination data is reported for child cares, schools, and grade-levels when available. The K-12 MMR coverage is the percent of students with 2 doses of MMR vaccine and the child care MMR coverage rate is the percent of children with 1 dose of MMR. Data may be incomplete for some locations.",
-    dashboard_intro = "This tab displays measles, mumps, and rubella (MMR) vaccine coverage data for schools and child cares as well as historical measles case data. To use this tool, first select an outcome (either historical measles cases or vaccine coverage). For historical measles cases, filter data by selecting the date range of cases to include and/or selecting age groups. For vaccine coverage, click on the map or select a county in the drop-down to view vaccine coverage data for schools and/or child cares in that county. To view grade-level vaccine coverage for a school, click the school on the map or select it from the drop-down.",
-    summary_intro = "This tab provides figures that report MMR vaccine coverage and enrollment for all schools or child cares in a user-selected county as well as historical measles cases by year and age for that county. To use this tool, first select the outcome then select the county.",
+    about_body = "This dashboard displays school immunization data and historical measles case data. The MMR coverage is the percent of students with 2 doses of MMR vaccine. Data may be incomplete for some locations.",
+    dashboard_intro = "This tab displays measles, mumps, and rubella (MMR) vaccine coverage for schools as well as historical measles case data. First select an outcome. For vaccine coverage, click on the map or select a county to view the schools in that county. For historical measles cases, filter by the years of cases to include and by age group.",
+    summary_intro = "This tab provides MMR vaccine coverage and enrollment for all schools in a selected county, as well as historical measles cases by year and age for that county. First select the outcome, then select the county.",
     coverage_key = "The <strong>MMR %</strong> column shows the percentage of enrolled students or children who have received the recommended number of MMR vaccine doses and is color-coded by coverage level. The <a href='https://odphp.health.gov/healthypeople/objectives-and-data/browse-objectives/vaccination' target='_blank' rel='noopener noreferrer' style='color:#0066cc;' aria-label='Healthy People 2030 immunization objectives (opens in a new tab)'>Healthy People 2030</a> goal calls for 95% vaccine coverage among young children for early childhood immunizations. Higher coverage reduces the size and duration of outbreaks and limits both the number of children to get the disease and the number of school days missed.",
     proximity_intro = "This tool can help identify schools and child cares with low vaccination rates within a defined search area. To use this tool, first select a school/child care or enter an address. Then select a search radius in miles and define a vaccine coverage threshold. The map will display schools and child cares with vaccine coverage less than the defined threshold in red. Facilities with vaccine coverage higher than the threshold are shown in gray. Healthcare Centers and school district boundaries can be displayed for informational purposes.",
     proximity_results_note = "Results show facilities within the selected radius that have MMR vaccine coverage below the user-defined vaccine threshold.",
@@ -131,13 +156,13 @@ list(
     "Vaccination rates reflect annual school and child care immunization reports and may be incomplete for certain facilities or counties.",
     "To protect privacy, data blurring standards were used. Data blurring involves reporting a range of vaccination coverage rather than a precise percentage. For example, schools or school districts that report all or almost all of their students being fully vaccinated have vaccination rates displayed as >95% or >98%. The range reported depends on the number of students enrolled in the school or school district. Data blurring is used to limit sharing private health information on individuals."
   ),
-  # CHANGE (optional): coverage cutoffs and colors, lowest band first. They
-  # color the maps, the school and child care dots, the grade bars, the
-  # tables and the reports, and they set the legends and the color key.
+  # CHANGE (optional): coverage cutoffs and colors, lowest band first. Used
+  # for the maps, school and child care dots, grade bars, tables, reports,
+  # legends and the color key.
   # min = lowest coverage (%) in the band (the first band starts at 0);
   # background = the band's color; color = text color in the color key.
-  # Legend text is written from the cutoffs; add label = "..." to a band
-  # to word it yourself.
+  # Legend text comes from the cutoffs; add label = "..." to a band to
+  # write your own.
   coverage_bins = list(
     list(min = 0, background = "red", color = "white"),
     list(min = 85, background = "orange", color = "#000"),
