@@ -1,118 +1,15 @@
-# ====================================================
-# FUNCTIONS TO EXECUTE COUNTY LEVEL MAP MODULE
-# ====================================================
-
-# ==== Create main County/District map on dashboard tab ====
-
-# Polygon layer ids on the county map: lower-case county names for
-# counties, district_id for districts. countyMapServer() turns a clicked
-# id back into a county name or district.
+# Layer IDs used by the maps and their click handlers.
 map_layer_ids <- function(map_data, boundary) {
   if (boundary == "county") tolower(map_data$county_name) else map_data$district_id
 }
 
-# Input:  map_data = counties or districts from the standard app data
-#         (load_app_data.R); boundary = "county" or "district";
-#         bands = coverage color bands (coverage_bands.R);
-#         map_view = starting view (map_view.R), by default one that fits map_data
-# Output: leaflet map shaded by coverage
-# Used by countyMapServer() and inst/reports/dashboard_report.Rmd.
+# County or district coverage map; calls build_coverage_map().
 county_district_map_dashboard <- function(map_data, bands, boundary = c("county", "district"),
                                           map_view = map_view_from_counties(map_data)) {
-  boundary <- match.arg(boundary)
-  boundary_view <- if (boundary == "county") "County" else "District"
-
-  # ----------- Layer ID, name, enrollment, and coverage for the selected boundary -------------
-
-  map_data$layer_id <- map_layer_ids(map_data, boundary)
-  map_data$name <- if (boundary == "county") map_data$county_name else map_data$district_name
-  map_data$enrollment <- map_data$enroll
-  # Coverage as a number (suppressed values like ">95" counted past their
-  # number, see load_app_data()), for the colors and the label
-  map_data$full_vax_pct <- map_data$full_vax_pct_num
-  # ------------------------------------------------------------------------------------------
-
-  # Check for demographic columns - can use this for step-down version of map
-  has_soc <- "students_of_color_pct" %in% colnames(map_data)
-  has_frl <- "frl_eligible_pct" %in% colnames(map_data)
-
-  # Pre-construct HTML labels row-by-row before passing to leaflet
-  map_data$map_label <- lapply(1:nrow(map_data), function(i) {
-    row <- map_data[i, ]
-
-    # Header label
-    header <- if (boundary_view == "County"){
-      paste(row$name, "County")
-    }  else {
-      row$name
-    }
-
-    # Enrollment text
-    enroll_txt <- if (is.na(row$enrollment)) {
-      "Data Not Available"
-    } else {
-      as.character(scales::comma(row$enrollment))
-    }
-
-    # Base HTML string
-    label_str <- paste0(
-      header, "<br>",
-      "2-dose MMR Coverage (K–12): ", row$full_vax_pct, "%<br>",
-      "Enrollment (K–12): ", enroll_txt
-    )
-
-    # Demographics are given as percentages (of the enrollment they were
-    # counted against), so they're shown as they are
-    pct_txt <- function(x) if (is.na(x)) "Data Not Available" else paste0(round(x, 1), "%")
-    if (has_soc) {
-      label_str <- paste0(label_str, "<br>Students of Color (K–12): ", pct_txt(row$students_of_color_pct))
-    }
-    if (has_frl) {
-      label_str <- paste0(label_str, "<br>Free/Reduced Lunch Eligible (K–12): ", pct_txt(row$frl_eligible_pct))
-    }
-
-    htmltools::HTML(label_str)
-  })
-
-  # -----------------------------------------------------------------------------------------
-  # ==== Constructing the Map ====
-
-  map <-leaflet(map_data, options = leafletOptions(minZoom = 5, maxZoom = 9)) |>
-    apply_map_view(map_view) |>
-    addProviderTiles("Esri.WorldTopoMap") |>
-    addPolygons(
-      fillColor = coverage_band_color(map_data$full_vax_pct, bands),
-      fillOpacity = 0.7,
-      color = "white",
-      weight = 1,
-      layerId = ~layer_id,
-      label = ~map_label
-    ) |>
-    add_coverage_legend(
-      bands,
-      title = paste0(boundary_view, " MMR (%)"),
-      missing_label = if (anyNA(map_data$full_vax_pct)) "Missing/Unknown",
-      opacity = 0.7
-    )
-  return(map)
+  build_coverage_map(map_data, boundary = match.arg(boundary), bands = bands, map_view = map_view)
 }
 
-# ==== Highlight selected county or district in orange ====
-
-# Input:  map_data and boundary as for county_district_map_dashboard();
-#         selected_id = a layer id from map_layer_ids()
+# Highlights the selected county or district on the dashboard map.
 highlight_selected <- function(map_data, selected_id, boundary = c("county", "district")) {
-  boundary <- match.arg(boundary)
-  selected_shape <- map_data[map_layer_ids(map_data, boundary) %in% selected_id, ]
-
-  leafletProxy("county_map") %>%
-    clearGroup("highlight") %>%
-    addPolygons(
-      data = selected_shape,
-      fill = FALSE,
-      color = "orange",
-      weight = 4,
-      opacity = 1,
-      group = "highlight"
-    )
+  add_coverage_highlight(leaflet::leafletProxy("county_map"), map_data, selected_id, match.arg(boundary))
 }

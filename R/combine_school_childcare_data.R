@@ -1,5 +1,4 @@
-# Function to combine and standardize school and daycare data
-# This function merges school and daycare datasets into a unified format
+# Combines school and daycare data into one table with the same columns.
 # Parameters:
 #   school_data: sf dataframe containing school information
 #   daycare_data: sf dataframe containing daycare information
@@ -9,13 +8,11 @@
 combineSchoolDaycareData <- function(school_data, daycare_data,
                                      school_name_col = "school_name",
                                      daycare_name_col = "facility_name") {
-  # Initialize empty dataframes for cleaned data
   schools_clean <- NULL
   daycares_clean <- NULL
 
   # Process school data if available and valid
   if (!is.null(school_data) && nrow(school_data) > 0 && school_name_col %in% names(school_data)) {
-    # Create standardized school dataframe with essential columns
     schools_clean <- data.frame(
       facility_name = school_data[[school_name_col]],
       facility_type = "School",
@@ -26,19 +23,16 @@ combineSchoolDaycareData <- function(school_data, daycare_data,
       stringsAsFactors = FALSE
     )
 
-    # Preserve spatial geometry if it exists
     if ("geometry" %in% names(school_data)) {
       schools_clean$geometry <- school_data$geometry
     }
 
-    # Remove rows with invalid facility names
     valid_names <- !is.na(schools_clean$facility_name) & schools_clean$facility_name != ""
     schools_clean <- schools_clean[valid_names, ]
   }
 
   # Process daycare data if available and valid
   if (!is.null(daycare_data) && nrow(daycare_data) > 0 && daycare_name_col %in% names(daycare_data)) {
-    # Create standardized daycare dataframe with essential columns
     # Child cares have no contact_info; it is added as an empty column below
     daycares_clean <- data.frame(
       facility_name = daycare_data[[daycare_name_col]],
@@ -48,19 +42,17 @@ combineSchoolDaycareData <- function(school_data, daycare_data,
       stringsAsFactors = FALSE
     )
 
-    # Preserve spatial geometry if it exists
     if ("geometry" %in% names(daycare_data)) {
       daycares_clean$geometry <- daycare_data$geometry
     }
 
-    # Remove rows with invalid facility names
     valid_names <- !is.na(daycares_clean$facility_name) & daycares_clean$facility_name != ""
     daycares_clean <- daycares_clean[valid_names, ]
   }
 
   # Combine datasets based on what data is available
   if (!is.null(schools_clean) && nrow(schools_clean) > 0 && !is.null(daycares_clean) && nrow(daycares_clean) > 0) {
-    # Both datasets exist - ensure they have matching columns before combining
+    # Both are present: give them matching columns, then combine
     all_cols <- union(names(schools_clean), names(daycares_clean))
 
     # Add missing columns to schools dataframe
@@ -72,7 +64,7 @@ combineSchoolDaycareData <- function(school_data, daycare_data,
         )
       } else {
         ""
-      } # Use empty string instead of NA for contact_info
+      }
     }
 
     # Add missing columns to daycares dataframe
@@ -82,7 +74,7 @@ combineSchoolDaycareData <- function(school_data, daycare_data,
           rep(sf::st_geometrycollection(), nrow(daycares_clean)),
           crs = 4326
         )
-      } else if (col == "contact_info") "" else NA # Explicitly handle contact_info as empty string
+      } else if (col == "contact_info") "" else NA
     }
 
     # Reorder columns to match and combine datasets
@@ -98,6 +90,5 @@ combineSchoolDaycareData <- function(school_data, daycare_data,
     return(daycares_clean)
   }
 
-  # No valid data available
   return(NULL)
 }

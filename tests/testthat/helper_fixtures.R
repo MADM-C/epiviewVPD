@@ -1,27 +1,45 @@
-make_schools <- function() {
-  st_as_sf(
-    data.frame(
-      school_name = c("Lincoln Elementary", "Roosevelt High"),
-      full_vax_pct = c("95.0", "88.5"),
-      partial_vax_pct = c("2.0", "4.1"),
-      enroll = c(400, 1200),
-      contact_info = c("555-0100", ""),
-      lng = c(-93.27, -93.25),
-      lat = c(44.98, 44.95)
-    ),
-    coords = c("lng", "lat"), crs = 4326
-  )
+copy_example <- function() {
+  dir <- tempfile("example-data-")
+  dir.create(dir)
+  file.copy(list.files(example_data_dir("full"), full.names = TRUE), dir)
+  dir
 }
 
-make_daycares <- function() {
-  st_as_sf(
-    data.frame(
-      facility_name = c("Little Sprouts", "Sunshine Kids"),
-      full_vax_pct = c("90.0", "0"),
-      enroll = c(40, 25),
-      lng = c(-93.30, -93.22),
-      lat = c(45.00, 44.97)
-    ),
-    coords = c("lng", "lat"), crs = 4326
-  )
+edit_csv <- function(dir, file, fn) {
+  path <- file.path(dir, file)
+  x <- utils::read.csv(path, colClasses = "character", check.names = FALSE, na.strings = "")
+  utils::write.csv(fn(x), path, row.names = FALSE, na = "")
+}
+
+load_error <- function(dir, ...) {
+  tryCatch({
+    load_app_data(dir, ...)
+    ""
+  }, error = function(e) conditionMessage(e))
+}
+
+only_features <- function(...) {
+  features <- default_features()
+  features[] <- FALSE
+  features[c(...)] <- TRUE
+  features
+}
+
+feature_data_dir <- function(files, without_coordinates = FALSE) {
+  dir <- tempfile("feature-data-")
+  dir.create(dir)
+  if (length(files)) {
+    copied <- file.copy(file.path(example_data_dir("full"), files), dir)
+    stopifnot(all(copied))
+  }
+  if (without_coordinates) {
+    for (file in intersect(files, c("schools.csv", "facilities.csv"))) {
+      edit_csv(dir, file, function(x) {
+        x$latitude <- NULL
+        x$longitude <- NULL
+        x
+      })
+    }
+  }
+  dir
 }

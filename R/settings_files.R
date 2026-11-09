@@ -4,18 +4,17 @@
 # A settings file can name its own logo images and case study
 # documents. Each name is looked for, in order:
 #   1. as given, when it is a full path
-#   2. next to the settings file (so a state keeps its files in the
-#      same folder as its settings)
+#   2. next to the settings file
 #   3. among the files that come with the package (inst/app/www)
 #
 # prepare_settings_files() is called by run_dashboard(). It
-#   - stops with a clear message when a named file can't be found
+#   - stops with a message when a named file can't be found
 #   - adds settings$logo_urls (banner/navbar/footer): the address the
 #     page uses for each logo. Package logos are served from
 #     "epiview-assets/"; a state's own logos are copied into a
-#     temporary folder served as "settings-files/", so only those
-#     files are published, not the rest of the settings folder.
-#   - adds `path` (full path) to each case study, for its download
+#     temporary folder served as "settings-files/".
+#   - adds `path` (full path) to each case study, for its download when
+#     Resources is enabled; otherwise drops the unused case studies
 # ============================================================
 
 # Input:  a file name from the settings and the settings file's folder
@@ -65,10 +64,22 @@ prepare_settings_files <- function(settings, settings_dir) {
   )
   if (!is.null(served_dir)) shiny::addResourcePath("settings-files", served_dir)
 
+  # Case studies are used only by the Resources tab.
+  if (!feature_enabled(dashboard_features(settings), "resources")) {
+    settings$case_studies <- list()
+    return(settings)
+  }
+
+  if (!is.null(settings$case_studies) && !is.list(settings$case_studies)) {
+    stop("case_studies in the settings has to be a list of entries with a label and a file.",
+         call. = FALSE)
+  }
+  is_text <- function(x) is.character(x) && length(x) == 1L && !is.na(x) && nzchar(trimws(x))
   settings$case_studies <- lapply(seq_along(settings$case_studies), function(i) {
     cs <- settings$case_studies[[i]]
-    if (is.null(cs$label) || is.null(cs$file)) {
-      stop("Case study ", i, " in the settings needs a label and a file.", call. = FALSE)
+    if (!is.list(cs) || !is_text(cs$label) || !is_text(cs$file)) {
+      stop("Case study ", i, " in the settings needs a label and a file (one non-empty text value each).",
+           call. = FALSE)
     }
     cs$path <- find_settings_file(cs$file, settings_dir, "case study file")
     cs

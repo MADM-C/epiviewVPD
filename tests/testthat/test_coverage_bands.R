@@ -1,6 +1,6 @@
 # Coverage cutoffs and colors from the settings (R/coverage_bands.R)
 
-test_that("default bands match the original 85/90/95 cutoffs", {
+test_that("default bands use the 85/90/95 cutoffs", {
   bands <- coverage_bands()
   expect_equal(bands$min, c(0, 85, 90, 95))
   expect_equal(bands$label, c("Below 85%", "85% to <90%", "90% to <95%", "95% and above"))

@@ -1,16 +1,8 @@
 # ============================================================
 # USER INTERFACE (UI) – EPIVIEW VPD DASHBOARD
 # ============================================================
-# Purpose
-# -------
-# This file defines the full user interface for the dashboard.
-# It structures the layout of the application, organizes
-# navigation across tabs, and creates reusable UI components
-# used throughout the app.
-#
-# The UI is responsible only for layout and display elements.
-# All data processing, mapping logic, and reactive behavior are
-# implemented in the server-side modules.
+# Defines the dashboard's layout and tabs, and the page pieces they share.
+# Data processing and maps are in the server modules.
 #
 # Input: dashboard_config, the settings list read in run_dashboard()
 # (default: inst/config/template.R).
@@ -62,12 +54,33 @@ contact_paragraph <- function(org) {
   )
 }
 
-app_ui <- function(dashboard_config) {
+app_ui <- function(dashboard_config, app_data = NULL) {
+  features <- dashboard_features(dashboard_config)
+  case_years <- slider_case_years(dashboard_config$case_years, app_data$cases)
+  has_layer <- function(name) is.null(app_data) || nrow(app_data[[name]]) > 0L
+  has_schools <- has_layer("schools")
+  has_childcares <- has_layer("facilities")
+  has_districts <- has_layer("districts")
+  district_map <- has_districts && (is.null(app_data) || any(!sf::st_is_empty(app_data$districts)))
+  county_features <- any(unlist(features[c("coverage_map", "facility_map", "facility_overview", "grade_plot", "grade_table")]))
+  detail_features <- any(unlist(features[c("facility_overview", "grade_plot", "grade_table")]))
+  dashboard_features_on <- county_features || features$cases_map
+  summary_features_on <- any(unlist(features[c("school_summary", "childcare_summary", "cases_summary", "epicurve")]))
+  proximity_features_on <- features$proximity_map || features$proximity_table
+  mode_choices <- c(if (county_features) stats::setNames("county", dashboard_config$labels$coverage_outcome),
+                    if (features$cases_map) stats::setNames("statewide", dashboard_config$labels$cases_outcome))
+  point_choices <- c(if (has_schools) "Schools", if (has_childcares) "Child Cares",
+                     if (has_schools && has_childcares) "Schools and Child Cares")
+  boundary_choices <- c("Counties" = "county", if (district_map) c("School Districts" = "district"))
+  summary_boundary_choices <- c("Counties" = "county", if (has_districts) c("School Districts" = "district"))
+  summary_choices <- c(if (features$school_summary) c("School Vaccine Coverage" = "School Vaccine Coverage"),
+                       if (features$childcare_summary) c("Child Care Vaccine Coverage" = "Child Care Vaccine Coverage"),
+                       if (features$cases_summary || features$epicurve) stats::setNames("Historical Measles Cases", dashboard_config$labels$cases_outcome))
   # === First Two Tabs Intro Paragraph ===
   intro_text_vaccine_coverage <- tags$div(
     class = "about-intro",
 
-    # --- Callout box ONLY for first paragraph ---
+    # --- Callout box for the first paragraph ---
     tags$div(
       class = "callout",
       HTML(dashboard_config$text$about_callout)
@@ -197,7 +210,7 @@ app_ui <- function(dashboard_config) {
       header = app_styles,
 
       # === ABOUT TAB ===
-      tabPanel(
+      if (features$about) tabPanel(
         "About",
         fluidPage(
           tags$h3(paste("About", dashboard_config$app$title)),
@@ -211,7 +224,7 @@ app_ui <- function(dashboard_config) {
       ),
 
       # === Dashboard Tab ===
-      tabPanel(
+      if (dashboard_features_on) tabPanel(
         "Dashboard",
         fluidPage(
           dashboard_tables_intro,
@@ -226,53 +239,43 @@ app_ui <- function(dashboard_config) {
               radioButtons(
                 "map_mode",
                 label = NULL,
-                choices = setNames(
-                  c("county", "statewide"),
-                  c(dashboard_config$labels$coverage_outcome, dashboard_config$labels$cases_outcome)
-                ),
-                selected = "county"
+                choices = mode_choices,
+                selected = unname(mode_choices[[1]])
               ),
-              conditionalPanel(
+              if (features$cases_map) conditionalPanel(
                 condition = "input.map_mode == 'statewide'",
                 sliderInput(
                   "year_range", "Year Range:",
-                  min = dashboard_config$case_years$min, max = dashboard_config$case_years$max,
-                  value = dashboard_config$case_years$selected, sep = ""
+                  min = case_years$min, max = case_years$max,
+                  value = case_years$selected, step = 1, sep = ""
                 ),
                 selectInput("case_age_group", "Age Group:", choices = NULL)
               ),
 
               # --- County-level Details ---
-              conditionalPanel(
+              if (county_features) conditionalPanel(
                 condition = "input.map_mode == 'county'",
 
                 # Toggle between county and school district view
                 radioButtons("boundary_type", "Boundary View:",
-                             choices = c(
-                               "Counties" = "county",
-                               "School Districts" = "district"
-                             ),
+                             choices = boundary_choices,
                              selected = "county"
                 ),
                 conditionalPanel(
                   condition = "input.boundary_type == 'county'",
                   selectInput("selected_county", "County:", choices = NULL)
                 ),
-                conditionalPanel(
+                if (district_map) conditionalPanel(
                   condition = "input.boundary_type == 'district'",
                   selectInput("selected_district", "School District:", choices = NULL)
                 ),
 
-                # Use radioButtons for the three choices
-                radioButtons("point_type", "Show:",
-                             choices = c("Schools", "Child Cares", "Schools and Child Cares"),
-                             selected = "Schools"
+                if (features$facility_map || detail_features) radioButtons("point_type", "Show:",
+                             choices = point_choices,
+                             selected = if (length(point_choices)) point_choices[[1]] else character()
                 ),
-                uiOutput("school_daycare_selector"),
-                conditionalPanel(
-                  condition = "input.selected_location != ''",
-                  downloadButton("download_dashboard_report", "Download Summary")
-                )
+                if (features$facility_map || detail_features) uiOutput("school_daycare_selector"),
+                if (detail_features) uiOutput("facility_report_download")
               )
             ),
 
@@ -280,21 +283,21 @@ app_ui <- function(dashboard_config) {
             mainPanel(
               width = 9,
               fluidRow(
-                column(
-                  6,
-                  conditionalPanel(
+                if (features$coverage_map || features$cases_map) column(
+                  if (features$facility_map && features$coverage_map) 6 else 12,
+                  if (features$coverage_map) conditionalPanel(
                     condition = "input.map_mode == 'county'",
                     uiOutput("county_map_title"),
                     leafletOutput("county_map", height = 500, width = "100%")
                   ),
-                  conditionalPanel(
+                  if (features$cases_map) conditionalPanel(
                     condition = "input.map_mode == 'statewide'",
                     h4(dashboard_config$labels$cases_map_title, class = "map-title"),
                     leafletOutput("statewide_map", height = 500, width = "100%")
                   )
                 ),
-                column(
-                  6,
+                if (features$facility_map) column(
+                  if (features$coverage_map) 6 else 12,
                   conditionalPanel(
                     condition = "input.map_mode == 'county' && ((input.boundary_type !== 'district' && input.selected_county !== '') || (input.boundary_type === 'district' && input.selected_district !== undefined && input.selected_district !== ''))",
                     uiOutput("submap_title"),
@@ -304,10 +307,10 @@ app_ui <- function(dashboard_config) {
               ),
 
               # --- County-level Details: Grade-Level Table ---
-              conditionalPanel(
+              if (detail_features) conditionalPanel(
                 condition = "input.map_mode == 'county' && ((input.boundary_type !== 'district' && input.selected_county !== '') || (input.boundary_type === 'district' && input.selected_district !== undefined && input.selected_district !== ''))",
                 uiOutput("grade_demo_text"),
-                tableOutput("grade_output")
+                uiOutput("grade_output")
               ),
               tags$hr()
             )
@@ -316,7 +319,7 @@ app_ui <- function(dashboard_config) {
       ),
 
       # === GT Table Tab ===
-      tabPanel(
+      if (summary_features_on) tabPanel(
         "Summary Figures",
         fluidPage(
           tables_intro,
@@ -325,25 +328,19 @@ app_ui <- function(dashboard_config) {
             # --- Left column: Controls ---
             column(
               width = 2,
-              # Values are matched in server modules and conditionalPanel conditions; only labels come from config.
+              # Values are matched in server modules and conditionalPanel conditions; labels come from the settings.
               radioButtons(
                 inputId = "table_type",
                 label = "Select Outcome",
-                choices = setNames(
-                  c("School Vaccine Coverage", "Child Care Vaccine Coverage", "Historical Measles Cases"),
-                  c("School Vaccine Coverage", "Child Care Vaccine Coverage", dashboard_config$labels$cases_outcome)
-                ),
-                selected = "School Vaccine Coverage"
+                choices = summary_choices,
+                selected = unname(summary_choices[[1]])
               ),
-              conditionalPanel(
+              if (features$school_summary) conditionalPanel(
                 condition = "input.table_type == 'School Vaccine Coverage'",
                 radioButtons(
                   inputId = "gt_boundary_type",
                   label = "Boundary View:",
-                  choices = c(
-                    "Counties" = "county",
-                    "School Districts" = "district"
-                  ),
+                  choices = summary_boundary_choices,
                   selected = "county"
                 )
               ),
@@ -355,7 +352,7 @@ app_ui <- function(dashboard_config) {
                   choices = NULL
                 )
               ),
-              conditionalPanel(
+              if (features$school_summary && has_districts) conditionalPanel(
                 condition = "input.table_type == 'School Vaccine Coverage' && input.gt_boundary_type == 'district'",
                 selectInput(
                   inputId = "gt_selected_district",
@@ -363,7 +360,7 @@ app_ui <- function(dashboard_config) {
                   choices = NULL
                 )
               ),
-              conditionalPanel(
+              if (features$school_summary || features$childcare_summary) conditionalPanel(
                 condition = "input.table_type == 'School Vaccine Coverage' ||
                    input.table_type == 'Child Care Vaccine Coverage'",
                 selectInput(
@@ -379,12 +376,12 @@ app_ui <- function(dashboard_config) {
               downloadButton("download_summary_figures", "Download Summary")
             ),
 
-            # --- Right column: Epicurve FIRST, then GT table ---
+            # --- Right column: epicurve, then GT table ---
             column(
               width = 10,
 
               # Epicurve when Measles Cases selected
-              conditionalPanel(
+              if (features$epicurve) conditionalPanel(
                 condition = "input.table_type == 'Historical Measles Cases'",
                 tags$div(
                   class = "epicurve-panel",
@@ -395,7 +392,7 @@ app_ui <- function(dashboard_config) {
               ),
 
               # Color key explanation - shown for vaccine coverage tables
-              conditionalPanel(
+              if (features$school_summary || features$childcare_summary) conditionalPanel(
                 condition = "input.table_type == 'School Vaccine Coverage' || input.table_type == 'Child Care Vaccine Coverage'",
                 tags$div(
                   class = "color-key-intro",
@@ -407,15 +404,18 @@ app_ui <- function(dashboard_config) {
                 )
               ),
 
-              # GT table always rendered
-              gt_output("summary_table")
+              # GT table
+              if (features$school_summary || features$childcare_summary || features$cases_summary) conditionalPanel(
+                condition = if (features$cases_summary) "true" else "input.table_type != 'Historical Measles Cases'",
+                gt_output("summary_table")
+              )
             )
           )
         )
       ),
 
       # === Proximity Map Tab ===
-      tabPanel(
+      if (proximity_features_on) tabPanel(
         "Proximity Map",
         fluidPage(
           intro_text_proximity_map,
@@ -473,22 +473,22 @@ app_ui <- function(dashboard_config) {
             )
           ),
 
-          # Results section with proper headings and labels
+          # Results section
           tags$div(
             role = "region",
             `aria-labelledby` = "results-heading",
             tags$h4("Results", id = "results-heading", class = "sr-only"),
             fluidRow(
-              column(
-                6,
+              if (features$proximity_map) column(
+                if (features$proximity_table) 6 else 12,
                 tags$div(
                   role = "img",
                   `aria-label` = "Interactive map showing a chosen point and nearby schools with vaccination data",
                   leafletOutput("proximity_map", height = 600)
                 )
               ),
-              column(
-                6,
+              if (features$proximity_table) column(
+                if (features$proximity_map) 6 else 12,
                 h4("Schools and Child Cares with Low Vaccine Coverage"),
                 p(dashboard_config$text$proximity_results_note, class = "proximity-results-note"),
                 tags$div(
@@ -503,7 +503,7 @@ app_ui <- function(dashboard_config) {
       ),
       # === Resources Tab ===
 
-      tabPanel(
+      if (features$resources) tabPanel(
         "Resources",
         fluidPage(
           resources_intro,
@@ -559,7 +559,11 @@ app_ui <- function(dashboard_config) {
         ),
         tags$hr(),
         resource_footer
-      )
+      ),
+      if (!any(unlist(features))) tabPanel("Dashboard", fluidPage(
+        h3("No dashboard features are enabled."),
+        p("Enable features in the dashboard settings to display content.")
+      ))
     )
   )
 }

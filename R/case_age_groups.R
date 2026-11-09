@@ -35,7 +35,7 @@ case_age_groups <- function(setting, values) {
 # ("0-4" -> "0-4 Years" with an en dash, "50+" -> "50+ Years"); anything
 # else ("Under 5", "6 months", "Unknown") is kept as written.
 age_group_labels <- function(groups) {
-  plain <- grepl("^[0-9]+(-[0-9]+)?\\+?$", groups)
+  plain <- !is.na(groups) & grepl("^[0-9]+(-[0-9]+)?\\+?$", groups)
   labels <- groups
   labels[plain] <- paste(gsub("-", "\u2013", groups[plain]), "Years")
   labels

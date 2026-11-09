@@ -2,24 +2,11 @@
 # SERVER LOGIC – EPIVIEW VPD DASHBOARD
 # ============================================================
 #
-# Purpose
-# -------
-# This file coordinates all server-side logic for the dashboard
-# and initializes all modular components.
+# Holds the values shared across modules (such as selected_school_id),
+# fills the dropdown menus and starts the Shiny modules listed below.
 #
-# The server primarily performs four roles:
-#
-# 1. Manage shared reactive state used across modules
-#    (e.g., selected_school_id).
-#
-# 2. Initialize UI inputs such as dropdown menus and filters.
-#
-# 3. Load and execute Shiny modules responsible for rendering
-#    maps, tables, and detailed facility views.
-#
-#
-# Major Modules Initialized Here
-# ------------------------------
+# Modules started here
+# --------------------
 # countyMapServer()     → county and district-level vaccination map
 # subMapServer()        → facility-level map (schools/daycares)
 # gradeDetailsServer()  → grade-level vaccination panel
@@ -35,6 +22,7 @@
 # ============================================================
 
 app_server <- function(app_data, dashboard_config) {
+  features <- dashboard_features(dashboard_config)
   # ==== Settings used by the modules ====
   # Coverage cutoffs and colors (settings `coverage_bins`, coverage_bands.R)
   bands <- coverage_bands(dashboard_config$coverage_bins,
@@ -42,7 +30,9 @@ app_server <- function(app_data, dashboard_config) {
   # Case age groups (settings `case_age_groups`, or the data's; case_age_groups.R)
   age_groups <- case_age_groups(dashboard_config$case_age_groups, app_data$cases$age_group)
   # Starting view for the maps (settings `map`, or fit to the counties)
-  map_view <- dashboard_map_view(dashboard_config$map, app_data$counties)
+  map_view <- if (any(unlist(features[c("coverage_map", "cases_map", "facility_map", "proximity_map")]))) {
+    dashboard_map_view(dashboard_config$map, app_data$counties)
+  } else NULL
   # Footnotes about the data (settings `notes`)
   notes <- dashboard_config$notes
 
@@ -61,9 +51,10 @@ app_server <- function(app_data, dashboard_config) {
 
     # Update stored value when summary table selection changes
     observeEvent(input$gt_selected_county, {
+      if (!input$gt_selected_county %in% app_data$counties$county_name) return()
       current_county(input$gt_selected_county)
       # Switch dashboard back to county view when county selected on summary table
-      if (input$boundary_type == "district") {
+      if (isTRUE(input$boundary_type == "district")) {
         updateRadioButtons(session, "boundary_type", selected = "county")
       }
 
@@ -72,7 +63,7 @@ app_server <- function(app_data, dashboard_config) {
     })
 
     observeEvent(input$boundary_type, {
-      if (input$boundary_type == "county") {
+      if (isTRUE(input$boundary_type == "county")) {
         updateSelectInput(session, "selected_county", selected = current_county())
       }
     })
@@ -80,17 +71,14 @@ app_server <- function(app_data, dashboard_config) {
     # Reactive value to store selected school ID (for use in grade/demographic lookup)
     selected_school_id <- reactiveVal(NULL)
 
-    observeEvent(input$point_type, {
-      selected_school_id(NULL)
-    })
-
-    observeEvent(input$boundary_type, {
-      selected_school_id(NULL)
-    })
+    if (any(unlist(features[c("facility_map", "facility_overview", "grade_plot", "grade_table")]))) {
+      facilitySelectionServer(input, output, session, selected_school_id,
+        app_data$schools, app_data$facilities, app_data$counties, app_data$districts,
+        map_enabled = features$facility_map)
+    }
 
     # Initialize dropdowns when the app loads
     observe({
-      # Populate county dropdown with sorted list of unique county names
       updateSelectInput(session, "selected_county", choices = sort(unique(app_data$counties$county_name)))
 
       # Populate district dropdown (display name = district_name, value = district_id)
@@ -98,7 +86,7 @@ app_server <- function(app_data, dashboard_config) {
       district_choices <- district_choices[order(names(district_choices))]
       updateSelectInput(session, "selected_district", choices = district_choices)
 
-      # Populate measles case age group selector
+      # Measles case age group selector
       updateSelectInput(
         session,
         "case_age_group",
@@ -109,19 +97,20 @@ app_server <- function(app_data, dashboard_config) {
 
     # === County-level Leaflet Map ====
 
-    countyMapServer(
+    if (features$coverage_map) countyMapServer(
       input = input,
       output = output,
       session = session,
       counties = app_data$counties,
       bands = bands,
       districts = app_data$districts,
-      map_view = map_view
+      map_view = map_view,
+      settings = dashboard_config
     )
 
     # === Submap ====
 
-    subMapServer(
+    if (features$facility_map) subMapServer(
       input = input,
       output = output,
       session = session,
@@ -131,12 +120,13 @@ app_server <- function(app_data, dashboard_config) {
       selected_school_id = selected_school_id,
       format_vax_pct = format_vax_pct,
       districts = app_data$districts,
-      bands = bands
+      bands = bands,
+      settings = dashboard_config
     )
 
     # === Grade level Details Section ====
 
-    gradeDetailsServer(
+    if (any(unlist(features[c("facility_overview", "grade_plot", "grade_table")]))) gradeDetailsServer(
       input = input,
       output = output,
       session = session,
@@ -149,12 +139,14 @@ app_server <- function(app_data, dashboard_config) {
       districts = app_data$districts,
       notes = notes,
       map_view = map_view,
-      bands = bands
+      bands = bands,
+      features = features,
+      settings = dashboard_config
     )
 
     # ==== GT Table Tab ====
 
-    gtServer(
+    if (any(unlist(features[c("school_summary", "childcare_summary", "cases_summary", "epicurve")]))) gtServer(
       input = input,
       output = output,
       session = session,
@@ -167,13 +159,15 @@ app_server <- function(app_data, dashboard_config) {
       districts = app_data$districts,
       notes = notes,
       bands = bands,
-      age_groups = age_groups
+      age_groups = age_groups,
+      features = features,
+      settings = dashboard_config
     )
 
     # ==== Measles Outbreak Tab ====
 
 
-    # Initialize the proximity map module
+    if (features$proximity_map || features$proximity_table) {
     proximity_results <- proximityMapServer(
       schools = reactive(app_data$schools),
       facilities = reactive(app_data$facilities),
@@ -183,32 +177,36 @@ app_server <- function(app_data, dashboard_config) {
       map_view = map_view,
       output = output,
       input = input,
-      session = session
+      session = session,
+      draw_map = features$proximity_map,
+      settings = dashboard_config
     )
 
-    # Initialize the proximity table module (uses values from the map module)
-    proximityTableServer(
+    # Uses the values returned by the proximity map module
+    if (features$proximity_table) proximityTableServer(
       proximity_map_values = proximity_results,
       output = output,
       input = input
     )
+    }
 
     # ==== Statewide Measles Cases ====
 
 
-    StatewideCasesServer(
+    if (features$cases_map) StatewideCasesServer(
       input = input,
       output = output,
       session = session,
       cases = app_data$cases,
       counties = app_data$counties,
-      map_view = map_view
+      map_view = map_view,
+      settings = dashboard_config
     )
 
     # === Resources ===
 
 
-    resourceServer(
+    if (features$resources) resourceServer(
       input = input,
       output = output,
       session = session,

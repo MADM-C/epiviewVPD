@@ -1,4 +1,12 @@
 list(
+  # Minnesota uses every part of the dashboard.
+  features = list(
+    coverage_map = TRUE, cases_map = TRUE, facility_map = TRUE,
+    facility_overview = TRUE, grade_plot = TRUE, grade_table = TRUE,
+    school_summary = TRUE, childcare_summary = TRUE, cases_summary = TRUE,
+    epicurve = TRUE, proximity_map = TRUE, proximity_table = TRUE,
+    about = TRUE, resources = TRUE
+  ),
   app = list(
     title = "Midwest EpiView: MMR Coverage and Measles",
     last_updated = "July 29th, 2026",
@@ -10,7 +18,6 @@ list(
     email = "madmc@umn.edu"
   ),
   funding = "This work was supported by cooperative agreement CDC-RFA-FT-23-0069 from the Center for Forecasting and Outbreak Analytics of the U.S. Centers for Disease Control and Prevention (CDC). Its contents are solely the responsibility of the authors and do not necessarily represent the official views of the CDC.",
-  case_years = list(min = 2010, max = 2025, selected = c(2015, 2020)),
   case_age_groups = c("0-4", "5-11", "12-19", "20-49", "50+", "Unknown"),
   proximity = list(
     default_threshold = 85,
@@ -19,6 +26,7 @@ list(
   # Starting view for the maps. Leave `map` out to fit the maps to the
   # county boundaries.
   map = list(
+    basemap = "Esri.WorldTopoMap",
     center = c(lng = -94.5, lat = 46.5),
     zoom = 6,
     max_bounds = c(-105, 40, -84, 52)
@@ -27,7 +35,7 @@ list(
   # it; leaving one out uses the template's wording (inst/config/template.R).
   notes = list(
     nonreporting_school = "MMR vaccination coverage is unavailable for schools that did not report data to MDH.",
-    nonreporting_table = "Schools that did not report MMR vaccination coverage to MDH are not displayed.",
+    nonreporting_table = "Schools that did not report MMR vaccination coverage to MDH remain listed with their known details; their vaccination coverage is shown as unknown.",
     redacted = "Redacted indicates the number of eligible students was fewer than 10.",
     blurred = "Blurred values (e.g., '>95%') are intentionally rounded up for privacy.",
     redacted_grades = "Grade-level vaccination data are redacted because fewer than 10 students were enrolled in each grade.",

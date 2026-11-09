@@ -15,7 +15,7 @@ parse_vax_num <- function(x) {
 # ============================================================
 # HELPER: derive a bar fill color from a coverage value. Blurred values
 # are colored by the number they count as (pct_number(), load_app_data.R),
-# so ">95" counts as 96 (green) and ">80" as 81 (red), not always green.
+# so ">95" counts as 96 (green) and ">80" as 81 (red).
 # ============================================================
 # bands = coverage color bands (coverage_bands.R).
 coverage_color <- function(value_raw, value_num, bands = coverage_bands()) {
@@ -29,7 +29,6 @@ coverage_color <- function(value_raw, value_num, bands = coverage_bands()) {
 
 extract_facility_choices <- function(school_data = NULL, childcare_data = NULL, point_type) {
 
-  # Clean sf geometry if present
   if (inherits(school_data, "sf")) {
     school_data <- sf::st_drop_geometry(school_data)
   }

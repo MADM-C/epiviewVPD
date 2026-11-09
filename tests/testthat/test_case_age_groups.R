@@ -29,22 +29,24 @@ test_that("column headings add 'Years' only to plain number ranges", {
   )
 })
 
-test_that("the case table has one column per configured group, zero-filled", {
+test_that("case tables show missing age groups as unknown when missing_records is unknown", {
   cases <- data.frame(
     county = "A", year = c(2020L, 2020L, 2021L), n_cases = c(2L, 1L, 4L),
     age_group = c("0-17", "18+", "0-17")
   )
-  wide <- render_cases_gt(cases, "A", c("0-17", "18+", "Unknown"))[["_data"]]
+  wide <- render_cases_gt(cases, "A", c("0-17", "18+", "Unknown"),
+                         settings = list(case_data = list(missing_records = "unknown")))[["_data"]]
   expect_equal(names(wide), c("county", "year", "0-17", "18+", "Unknown"))
-  expect_equal(wide$`18+`, c(1, 0))
-  expect_equal(wide$Unknown, c(0, 0))
+  expect_equal(wide$`18+`, c(1, NA))
+  expect_true(all(is.na(wide$Unknown)))
   expect_equal(case_table_headings(cases, "A", c("0-17", "18+")), c("County", "Year", "0\u201317 Years", "18+ Years"))
 })
 
 test_that("cases without an age group get their own column", {
   cases <- data.frame(county = "A", year = 2020L, n_cases = c(2L, 3L), age_group = c("0-17", NA))
-  wide <- render_cases_gt(cases, "A", c("0-17", "18+"))[["_data"]]
-  expect_equal(unname(unlist(wide[1, 3:5])), c(2, 0, 3))
+  wide <- render_cases_gt(cases, "A", c("0-17", "18+"),
+                         settings = list(case_data = list(missing_records = "unknown")))[["_data"]]
+  expect_equal(unname(unlist(wide[1, 3:5])), c(2, NA, 3))
   expect_equal(case_table_headings(cases, "A", c("0-17", "18+")), c("County", "Year", "0\u201317 Years", "18+ Years", "Age not given"))
   # no age groups at all: one "Cases" column
   cases_no_age <- data.frame(county = "A", year = 2020L, n_cases = 5L, age_group = NA_character_)
@@ -61,7 +63,7 @@ test_that("a group named like the no-age column doesn't clash with it", {
 test_that("cases.csv groups not in the settings stop the loader, naming value and rows", {
   dir <- tempfile("example-data-")
   dir.create(dir)
-  file.copy(list.files(example_data_dir(), full.names = TRUE), dir)
+  file.copy(list.files(example_data_dir("full"), full.names = TRUE), dir)
   path <- file.path(dir, "cases.csv")
   x <- utils::read.csv(path, colClasses = "character", na.strings = "")
   x$age_group[c(2, 5)] <- "5-9"

@@ -2,8 +2,7 @@
 # APP SERVER FUNCTIONS
 # ============================================================
 
-# This script contains functions that were initially embedded within the
-# server.R script.
+# Helpers used by the server modules.
 
 # ============================================================
 # HELPER: resolve school_id from either reactive or dropdown
@@ -24,12 +23,9 @@ resolve_school_id <- function(school_id_reactive, selected_location, school_data
 # ============================================================
 
 is_nonresponder <- function(school_id, school_data = NULL) {
-  school_data |>
-    sf::st_drop_geometry() |>
-    dplyr::filter(school_id == .env$school_id) |>
-    dplyr::mutate(non_responder = ifelse((full_vax_pct == 0 & !is.na(full_vax_pct)) &
-                                           (partial_vax_pct == 0 & !is.na(partial_vax_pct)), TRUE, FALSE)) |>
-    pull(non_responder)
+  if (is.null(school_data) || !"reporting_status" %in% names(school_data)) return(FALSE)
+  rows <- which(as.character(school_data$school_id) == as.character(school_id))
+  length(rows) > 0 && any(school_data$reporting_status[rows] == "not_reported", na.rm = TRUE)
 }
 
 # ============================================================
@@ -42,32 +38,26 @@ format_vax_pct <- function(x) {
     ifelse(grepl("^[<>]", x),
            paste0(x, ifelse(grepl("%$", x), "", "%")), # if already has %, don't add
            paste0(suppressWarnings(as.numeric(gsub("[^0-9.]", "", x))), "%")
-    ) # strips non-numeric
+    )
   )
 }
 
 # ============================================================
 # STATEWIDE K–12 MMR COVERAGE
 # ============================================================
-# This helper function calculates the statewide MMR vaccination
-# rate across all schools. The calculation is enrollment-weighted,
-# meaning total vaccinated students divided by total enrolled
-# students across the entire dataset.
-#
-# This value is displayed above the county map to provide
-# statewide context when users are viewing county-level coverage.
+# Statewide MMR rate: total vaccinated students divided by total enrolled
+# students across all schools. Shown above the county map.
 # ============================================================
 
 calc_statewide_k12 <- function(df) {
-  df <- df |>
-    dplyr::filter(!is.na(full_vax), !is.na(enroll))
-
-  if (nrow(df) == 0) {
+  if (is.null(df) || nrow(df) == 0 || !all(c("full_vax", "enroll") %in% names(df))) {
     return(NA)
   }
-
-  vaccinated <- sum(df$full_vax, na.rm = TRUE)
-  students <- sum(df$enroll, na.rm = TRUE)
+  # NA when any school has unknown counts or is not reporting.
+  if (any(is.na(df$full_vax) | is.na(df$enroll)) ||
+      ("reporting_status" %in% names(df) && any(df$reporting_status == "not_reported", na.rm = TRUE))) return(NA_real_)
+  vaccinated <- sum(df$full_vax)
+  students <- sum(df$enroll)
 
   if (students == 0) {
     return(NA)
@@ -79,9 +69,8 @@ calc_statewide_k12 <- function(df) {
 # ============================================================
 # HELPER: Spatial-Based Filter
 # ============================================================
-# This function looks at the geometries of all facilities in
-# the supplied spatial dataset and finds which facilities fall
-# within the specified boundary (county or school district)
+# Finds the facilities in sf_data that fall within the boundary (county or
+# school district).
 
 # sf_data = spatial dataset
 # shape = boundary shape (i.e. county or district)
@@ -99,49 +88,28 @@ filter_spatial_safe <- function(sf_data, shape) {
 # ============================================================
 
 extract_facility_choices <- function(school_data = NULL, childcare_data = NULL, point_type) {
-  # Clean sf geometry if present
-  if (inherits(school_data, "sf")) {
-    school_data <- sf::st_drop_geometry(school_data)
+  choices <- character()
+  for (kind in c("school", "facility")) {
+    if (kind == "school" && isTRUE(point_type == "Child Cares")) next
+    if (kind == "facility" && isTRUE(point_type == "Schools")) next
+    data <- if (kind == "school") school_data else childcare_data
+    id <- paste0(kind, "_id")
+    label <- paste0(kind, "_name")
+    if (is.null(data) || !all(c(id, label) %in% names(data))) next
+    valid <- !is.na(data[[id]]) & !is.na(data[[label]]) & nzchar(data[[label]])
+    labels <- as.character(data[[label]][valid])
+    choices <- c(choices, stats::setNames(paste0(kind, ":", data[[id]][valid]), labels))
   }
-  if (inherits(childcare_data, "sf")) {
-    childcare_data <- sf::st_drop_geometry(childcare_data)
-  }
-
-  if (isTRUE(point_type == "Schools")) {
-    school_data |>
-      dplyr::pull(school_name) |>
-      unique() |>
-      sort()
-  } else if (isTRUE(point_type == "Child Cares")) {
-    df <- childcare_data |>
-      dplyr::filter(!is.na(facility_id), !is.na(facility_name))
-
-    lc <- stats::setNames(as.character(df$facility_id), df$facility_name)
-    lc[order(names(lc))]
-  } else {
-    # "All" or unselected mode
-    c(
-      dplyr::pull(school_data, school_name),
-      dplyr::pull(childcare_data, facility_name)
-    ) |>
-      unique() |>
-      sort()
-  }
+  choices[order(tolower(names(choices)))]
 }
-
 # ============================================================
 # HELPER: Combine Spatial & Id-Based Filtering
 # ============================================================
-# This function looks at the type of boundary view that the
-# user selected (county or district), extracts the shape
-# of that boundary and then use filter_spatial_safe to
-# identify the facilities that fall within the boundary
-# to provide a complete list of facility options
+# Finds the facilities in the selected county or district, by boundary shape
+# and by ID, for the facility dropdown and maps.
 
 get_location_choices_data <- function(drop_sf,
-                                      # drop_sf: should the geometry info be dropped (T/F)?
-                                      # drop - if using to selectize drop-downs
-                                      # retain - if using to construct maps
+                                      # drop_sf: TRUE to drop geometry (for dropdowns), FALSE to keep it (for maps)
                                       boundary_type,
                                       point_type,
                                       selected_district,
@@ -153,7 +121,10 @@ get_location_choices_data <- function(drop_sf,
   is_district_mode <- !is.null(boundary_type) && boundary_type == "district"
 
   if (is_district_mode) {
-    req(selected_district, !is.null(district_data))
+    if (!length(selected_district) || is.null(district_data)) {
+      if (isTRUE(drop_sf)) return(character())
+      return(list(boundary = county_data[0, ], schools = school_data[0, ], childcares = childcare_data[0, ]))
+    }
 
     # Extract & validate shape
     district_shape <- district_data |>
@@ -172,7 +143,10 @@ get_location_choices_data <- function(drop_sf,
     boundary_choice <- district_shape
   } else {
     # County mode
-    req(selected_county, !is.null(county_data))
+    if (!length(selected_county) || is.null(county_data)) {
+      if (isTRUE(drop_sf)) return(character())
+      return(list(boundary = county_data[0, ], schools = school_data[0, ], childcares = childcare_data[0, ]))
+    }
     county_lower_selected <- tolower(selected_county)
 
     boundary_choice <- county_data |> dplyr::filter(tolower(county_name) == county_lower_selected)

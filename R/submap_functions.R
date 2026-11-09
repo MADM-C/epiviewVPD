@@ -1,99 +1,55 @@
-# ====================================================
-# FUNCTIONS TO EXECUTE SUB MAP MODULE
-# ====================================================
-
-# ==== Create map background for the submap ====
-
-base_submap <- function(boundary_shape) {
-  leaflet(options = leafletOptions(minZoom = 6, maxZoom = 18)) |>
-    addProviderTiles("Esri.WorldTopoMap") |>
-    addPolygons(data = boundary_shape, fillOpacity = 0.2, color = "black", weight = 2)
+# Map pieces used by the facility map and its server.
+base_submap <- function(boundary_shape, map_view = map_view_from_counties(boundary_shape)) {
+  map <- leaflet::leaflet(options = leaflet::leafletOptions(minZoom = 6, maxZoom = 18))
+  map <- add_map_basemap(apply_map_view(map, map_view), map_view)
+  leaflet::addPolygons(map, data = boundary_shape, fillOpacity = 0.2, color = "black", weight = 2)
 }
 
-# ==== Add Markers for Schools & Childcares to Leaflet Map ====
-
-# Dot colors come from full_vax_pct_num (load_app_data.R), so blurred values
-# (">95", "<5") are colored by the number they count as; bands =
-# coverage color bands (coverage_bands.R).
 add_point_layers <- function(map, point_type, school_data = NULL, childcare_data = NULL,
                              bands = coverage_bands()) {
-  show_schools <- point_type %in% c("Schools", "Schools and Child Cares")
-  show_childcares <- point_type %in% c("Child Cares", "Schools and Child Cares")
-  is_combined <- point_type == "Schools and Child Cares"
-
-  # --- Add Schools Layer ---
-  if (show_schools && !is.null(school_data) && nrow(school_data) > 0) {
-    base_radius <- if (is_combined) 6 else 5
-
-    map <- map |>
-      addCircleMarkers(
-        data = school_data,
-        lng = ~final_lon,
-        lat = ~final_lat,
-        radius = ~ ifelse(n_at_location > 1, base_radius + 1, base_radius),
-        stroke = TRUE,
-        weight = ~ ifelse(n_at_location > 1, 2, 1),
-        color = "black",
-        fillColor = ~ coverage_band_color(full_vax_pct_num, bands),
-        fillOpacity = 0.9,
-        layerId = ~school_id,
-        group = if (is_combined) "Schools" else NULL,
-        popup = ~ paste0(
-          "<b>", school_name, "</b><br>", county_name, " County<br>",
-          if (is_combined) "Type: School<br>" else paste0("School Type: ", school_type, "<br>"),
-          "Grades: ", grade_range, "<br>",
-          "MMR Coverage: ", paste0(if_else(school_data$full_vax_pct == 0 & school_data$partial_vax_pct == 0, "Data unavailable",
-                                           format_vax_pct(school_data$full_vax_pct))),
-          ifelse(
-            n_at_location > 1,
-            paste0("<br><i>", if (!is_combined) "Warning: " else "", n_at_location, " schools at this location</i>"),
-            ""
-          )
-        ),
-        label = ~ paste0(
-          school_name,
-          if (is_combined) " (School)" else "",
-          ": ", paste0(if_else(school_data$full_vax_pct == 0 & school_data$partial_vax_pct == 0, "Data unavailable",
-                               format_vax_pct(school_data$full_vax_pct)))
-        ),
-        labelOptions = labelOptions(direction = "top", textsize = "13px", opacity = 0.85)
-      )
+  combined <- point_type == "Schools and Child Cares"
+  school_data <- map_coverage_data(school_data, bands)
+  childcare_data <- map_coverage_data(childcare_data, bands)
+  if (point_type %in% c("Schools", "Schools and Child Cares") && !is.null(school_data) && nrow(school_data)) {
+    if (!all(c("final_lon", "final_lat", "n_at_location") %in% names(school_data))) school_data <- add_micro_offset(school_data)
+    school <- school_data
+    for (col in c("school_type", "grade_range", "county_name")) if (!col %in% names(school)) school[[col]] <- NA_character_
+    if (!"school_id" %in% names(school)) stop("schools is missing school_id.", call. = FALSE)
+    text <- function(x) ifelse(is.na(x) | !nzchar(as.character(x)), "Data Not Available", map_text(x))
+    coverage <- map_text(map_coverage_label(school$full_vax_pct))
+    popup <- paste0("<b>", map_text(school$school_name), "</b><br>", text(school$county_name), " County<br>",
+      if (combined) "Type: School<br>" else paste0("School Type: ", text(school$school_type), "<br>"),
+      "Grades: ", text(school$grade_range), "<br>MMR Coverage: ", coverage,
+      ifelse(school$n_at_location > 1, paste0("<br><i>", school$n_at_location, " schools at this location</i>"), ""))
+    label <- paste0(school$school_name, if (combined) " (School)" else "", ": ", map_coverage_label(school$full_vax_pct))
+    map <- leaflet::addCircleMarkers(map, lng = school$final_lon, lat = school$final_lat,
+      radius = ifelse(school$n_at_location > 1, if (combined) 7 else 6, if (combined) 6 else 5),
+      stroke = TRUE, weight = ifelse(school$n_at_location > 1, 2, 1), color = "black",
+      fillColor = coverage_band_color(school$full_vax_pct_num, bands), fillOpacity = 0.9,
+      layerId = paste0("school:", school$school_id), group = if (combined) "Schools" else NULL,
+      popup = popup, label = label,
+      labelOptions = leaflet::labelOptions(direction = "top", textsize = "13px", opacity = 0.85))
   }
-
-  # --- Add Daycares Layer ---
-  if (show_childcares && !is.null(childcare_data) && nrow(childcare_data) > 0) {
-    childcare_radius <- if (is_combined) 4 else 5
-
-    map <- map |>
-      addCircleMarkers(
-        data = childcare_data,
-        radius = childcare_radius,
-        stroke = TRUE,
-        weight = 1,
-        color = "black",
-        fillColor = ~ coverage_band_color(full_vax_pct_num, bands),
-        fillOpacity = 0.9,
-        layerId = ~facility_id,
-        group = if (is_combined) "Child Cares" else NULL,
-        popup = ~ paste0(
-          facility_name, "<br>", county_name, " County<br>",
-          if (is_combined) "Type: Daycare<br>" else "",
-          "Eligible: ", enroll_eligible, "<br>",
-          "Vaccinated", if (!is_combined) " (1 dose)" else "", ": ", full_vax, "<br>",
-          "Coverage: ", format_vax_pct(full_vax_pct)
-        ),
-        label = ~ paste0(
-          facility_name,
-          if (is_combined) " (Daycare)" else "",
-          ": ", format_vax_pct(full_vax_pct)
-        ),
-        labelOptions = labelOptions(direction = "top", textsize = "13px", opacity = 0.85)
-      )
+  if (point_type %in% c("Child Cares", "Schools and Child Cares") && !is.null(childcare_data) && nrow(childcare_data)) {
+    childcare <- childcare_data
+    for (col in c("county_name", "enroll_eligible", "full_vax")) if (!col %in% names(childcare)) childcare[[col]] <- NA
+    if (!"facility_id" %in% names(childcare)) stop("facilities is missing facility_id.", call. = FALSE)
+    coords <- sf::st_coordinates(childcare)
+    count <- function(x) ifelse(is.na(x), "Data Not Available", as.character(x))
+    popup <- paste0(map_text(childcare$facility_name), "<br>", map_text(childcare$county_name), " County<br>",
+      if (combined) "Type: Daycare<br>" else "", "Eligible: ", count(childcare$enroll_eligible),
+      "<br>Vaccinated", if (!combined) " (1 dose)" else "", ": ", count(childcare$full_vax),
+      "<br>Coverage: ", map_text(map_coverage_label(childcare$full_vax_pct)))
+    map <- leaflet::addCircleMarkers(map, lng = coords[, 1], lat = coords[, 2],
+      radius = if (combined) 4 else 5, stroke = TRUE, weight = 1, color = "black",
+      fillColor = coverage_band_color(childcare$full_vax_pct_num, bands), fillOpacity = 0.9,
+      layerId = paste0("facility:", childcare$facility_id), group = if (combined) "Child Cares" else NULL,
+      popup = popup,
+      label = paste0(childcare$facility_name, if (combined) " (Daycare)" else "", ": ", map_coverage_label(childcare$full_vax_pct)),
+      labelOptions = leaflet::labelOptions(direction = "top", textsize = "13px", opacity = 0.85))
   }
-
-  return(map)
+  map
 }
-
 # ==== Create school district overlay (filtered to the selected counties) ====
 
 county_district_overlay <- function(map, county_districts = NULL) {
@@ -130,9 +86,8 @@ control_overlay_groups <- function(point_type,
       } else {
         "School Districts"
       }
-    } # end overlay groups if else
+    }
 
-  # add overlays to map
   if (length(overlay_groups) > 0) {
     map <- map |>
       addLayersControl(
@@ -162,7 +117,8 @@ submap_title_vax <- function(boundary_type,
                              selected_district,
                              district_data = NULL,
                              selected_county,
-                             county_data = NULL) {
+                             county_data = NULL,
+                             has_childcares = TRUE) {
   is_district_mode <- !is.null(boundary_type) && boundary_type == "district"
 
   if (is_district_mode) {
@@ -178,7 +134,8 @@ submap_title_vax <- function(boundary_type,
   }
 
   tagList(
-    tags$h4("MMR Coverage for Schools and Child Cares", class = "submap-title"),
+    tags$h4(if (has_childcares) "MMR Coverage for Schools and Child Cares" else "MMR Coverage for Schools",
+            class = "submap-title"),
     if (!is.na(boundary_rate)) {
       tags$div(
         paste0(
