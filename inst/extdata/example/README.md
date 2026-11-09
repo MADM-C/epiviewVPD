@@ -46,8 +46,8 @@ run_dashboard(data_dir = example_data_dir("full"))
 To work on your own copy:
 
 ```r
-dir.create("my_data", recursive = TRUE, showWarnings = FALSE)
-file.copy(list.files(example_data_dir("full"), full.names = TRUE), "my_data")
+dir.create("app_data", recursive = TRUE, showWarnings = FALSE)
+file.copy(list.files(example_data_dir("full"), full.names = TRUE), "app_data")
 ```
 
 See the [data-format guide](https://github.com/MADM-C/epiviewVPD/blob/main/vignettes/data-format.Rmd) for every

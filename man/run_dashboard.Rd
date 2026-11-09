@@ -5,7 +5,7 @@
 \title{Run the dashboard}
 \usage{
 run_dashboard(
-  data_dir = "App Data",
+  data_dir = "app_data",
   config = system.file("config", "template.R", package = "epiviewVPD"),
   ...
 )
@@ -33,6 +33,6 @@ Loads the dashboard's data and settings and starts the Shiny app.
 }
 \examples{
 \dontrun{
-run_dashboard(data_dir = "App Data")
+run_dashboard(data_dir = "app_data", config = "my_settings.R")
 }
 }
