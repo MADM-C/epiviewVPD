@@ -62,9 +62,12 @@ test_that("case_years and proximity are checked", {
 })
 
 test_that("map center and zoom go together, and every problem is listed", {
-  err <- expect_error(read_dashboard_settings(settings_file(
-    "list(map = list(center = c(-94, 46), bounds = 1), proximity = list(default_threshold = -1))"
-  )))
+  expect_warning(
+    err <- expect_error(read_dashboard_settings(settings_file(
+      "list(map = list(center = c(-94, 46), bounds = 1), proximity = list(default_threshold = -1))"
+    ))),
+    "map\\$bounds"
+  )
   expect_match(conditionMessage(err), "center .* and map\\$zoom go together")
   expect_match(conditionMessage(err), "unknown entries: bounds")
   expect_match(conditionMessage(err), "default_threshold")
@@ -143,8 +146,8 @@ test_that("misspelled settings give a warning; the shipped settings give none", 
 
 test_that("the suppression settings reach the loaded data", {
   # blurred_offset: how far past its number a ">95" counts
-  one <- load_app_data(example_data_dir(), suppressed_offset = 1)$districts
-  two <- load_app_data(example_data_dir(), suppressed_offset = 2)$districts
+  one <- load_app_data(example_data_dir("full"), suppressed_offset = 1)$districts
+  two <- load_app_data(example_data_dir("full"), suppressed_offset = 2)$districts
   blurred <- grepl("^>", one$full_vax_pct)
   expect_true(any(blurred))
   expect_equal(two$full_vax_pct_num[blurred], one$full_vax_pct_num[blurred] + 1)
@@ -152,7 +155,7 @@ test_that("the suppression settings reach the loaded data", {
   # redacted_codes: a code such as "*" is read as blank
   dir <- file.path(tempfile(), "data")
   dir.create(dir, recursive = TRUE)
-  file.copy(list.files(example_data_dir(), full.names = TRUE), dir)
+  file.copy(list.files(example_data_dir("full"), full.names = TRUE), dir)
   schools <- utils::read.csv(file.path(dir, "schools.csv"), colClasses = "character")
   schools$full_vax[1] <- "*"
   utils::write.csv(schools, file.path(dir, "schools.csv"), row.names = FALSE)
