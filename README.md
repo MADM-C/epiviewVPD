@@ -24,7 +24,7 @@ proximity search map, see [Adding more](vignettes/adding-more.Rmd).
 
 ## Requirements
 
-- **[R 4.3.0 or newer](https://cran.r-project.org/)**
+- **[R 4.6.0 or newer](https://cran.r-project.org/)**
 - **[RStudio](https://posit.co/download/rstudio-desktop/)** is recommended.
   Downloading reports from the dashboard needs Pandoc, which RStudio includes.
 - **Internet access** to install the package, draw the background map, and
