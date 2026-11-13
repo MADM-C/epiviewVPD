@@ -128,3 +128,28 @@ test_that("statewide case tables stay unknown when one county's count is unknown
     expect_true(is.na(wide$`18+`))
   }
 })
+
+# Dropdown choices for a county or district with no child cares or no schools
+# (issue #16: the dropdown stopped with "NAs are not allowed in subscripted assignments").
+test_that("facility dropdown choices work for areas with no schools or child cares", {
+  data <- load_app_data(example_data_dir("full"), features = all_features())
+  empty_county <- setdiff(data$counties$county_name, data$facilities$county_name)[1]
+  empty_district <- setdiff(data$districts$district_id, data$schools$district_id)[1]
+  expect_false(is.na(empty_county))
+  expect_false(is.na(empty_district))
+  areas <- list(county = empty_county, district = empty_district)
+  for (boundary in names(areas)) {
+    for (points in c("Schools", "Child Cares", "Schools and Child Cares")) {
+      choices <- get_location_choices_data(TRUE, boundary, points,
+                                           if (boundary == "district") areas[[boundary]] else NULL,
+                                           if (boundary == "county") areas[[boundary]] else NULL,
+                                           data$districts, data$counties, data$schools, data$facilities)
+      expect_false(anyNA(names(choices)))
+      expect_true(all(grepl("^(school|facility):.+", choices)))
+      expect_no_error(shiny::selectizeInput("x", "x", choices = c("", choices)))
+    }
+  }
+  county_care <- get_location_choices_data(TRUE, "county", "Child Cares", NULL, empty_county,
+                                           data$districts, data$counties, data$schools, data$facilities)
+  expect_length(county_care, 0)
+})
