@@ -94,7 +94,7 @@ test_that("left-out optional columns become blank columns", {
 })
 
 test_that("the data format guide lists every column the loader knows", {
-  guide <- testthat::test_path("..", "..", "vignettes", "data-format.Rmd")
+  guide <- testthat::test_path("..", "..", "guides", "2-data-format.md")
   skip_if_not(file.exists(guide))
   text <- paste(readLines(guide), collapse = "\n")
   for (layer in names(DATA_FILES)) {

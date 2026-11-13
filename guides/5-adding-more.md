@@ -1,23 +1,12 @@
----
-title: "Adding more to your dashboard"
-output: rmarkdown::html_vignette
-vignette: >
-  %\VignetteIndexEntry{Adding more to your dashboard}
-  %\VignetteEngine{knitr::rmarkdown}
-  %\VignetteEncoding{UTF-8}
----
+# Adding more to your dashboard
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(eval = FALSE)
-```
-
-The [README](../README.md) covers the basic dashboard, which needs only
+[Get started](1-get-started.md) covers the basic dashboard, which needs only
 `counties.csv`, `schools.csv`, and `cases.csv`. This guide covers everything
 else epiviewVPD can show. Add these one at a time, once the basic dashboard is
 working with your data. It uses the `app_data` folder and `my_settings.R` file
-from the README's [Use your own data](../README.md#use-your-own-data) steps.
+from [Run the dashboard with your data](3-own-data.md).
 
-The columns for each file are listed in the [data format guide](data-format.Rmd).
+The columns for each file are listed in the [data format guide](2-data-format.md).
 
 ## What you can add
 
@@ -36,7 +25,7 @@ The columns for each file are listed in the [data format guide](data-format.Rmd)
 Open `my_settings.R`. The `features` list at the top has a line for each
 feature. Change `FALSE` to `TRUE` for the ones you want:
 
-```{r}
+```r
 grade_plot = TRUE,           # grade-level chart (needs grades.csv)
 grade_table = TRUE,          # grade-level table (needs grades.csv)
 ```
@@ -44,7 +33,7 @@ grade_table = TRUE,          # grade-level table (needs grades.csv)
 Save the file, add any data files the feature needs to `app_data`, and start the
 dashboard again:
 
-```{r}
+```r
 run_dashboard(data_dir = "app_data", config = "my_settings.R")
 ```
 
@@ -60,7 +49,7 @@ features, you may want to change it, in the `text` section of `my_settings.R`
 To see the complete dashboard with the made-up example data, make a small
 settings file that turns on every feature, and run it with the full example:
 
-```{r}
+```r
 library(epiviewVPD)
 writeLines("list(features = all_features())", "all_features_settings.R")
 run_dashboard(data_dir = example_data_dir("full"), config = "all_features_settings.R")
@@ -73,14 +62,14 @@ To find the full example files, run `example_data_dir("full")`.
 Add `facilities.csv`, with one row per child care program. Child cares appear
 on the map as soon as the file is there. Turn on `childcare_summary` to add the
 summary table. The columns are listed under `facilities.csv` in the
-[data format guide](data-format.Rmd).
+[data format guide](2-data-format.md).
 
 ## Grade-level coverage
 
 Add `grades.csv`, with one row per grade in each school, and turn on
 `grade_plot` and `grade_table`. To see them, select a school on the Dashboard
 tab. The columns are listed under `grades.csv` in the
-[data format guide](data-format.Rmd).
+[data format guide](2-data-format.md).
 
 ## School details
 
@@ -105,7 +94,7 @@ District boundaries download from the Census for the state in `my_settings.R`.
 For Census boundaries,
 `district_id` is the 7-character Census district code. You can use your own
 `district_boundaries.geojson` instead. The matching rules and the columns are
-in the [data format guide](data-format.Rmd#school-districts).
+in the [data format guide](2-data-format.md#school-districts).
 
 ## Proximity search
 
@@ -132,7 +121,7 @@ Turn on `resources`, then fill in `faq`, `resource_links`, and `case_studies`
 near the end of `my_settings.R`. Put case study files in the same folder as
 `my_settings.R`. No data files are needed.
 
-```{r}
+```r
 faq = list(
   list(question = "Who is the tool designed for?",
        answer = "School nurses, child care directors, and public health staff.")
@@ -152,16 +141,16 @@ is explained by the comments in `my_settings.R`. Lines marked `CHANGE` are the
 ones most states will want to fill in. Logo files go in the same folder as
 `my_settings.R`. For a filled-in example, open the Minnesota settings:
 
-```{r}
+```r
 file.edit(system.file("config", "measles_mn.R", package = "epiviewVPD"))
 ```
 
 ## Build these visualizations in R
 
 These examples use the full example data. To use your own data, load it as in
-the README's [Use your own data](../README.md#use-your-own-data-1).
+[Use your own data](4-visualizations.md#use-your-own-data).
 
-```{r}
+```r
 library(epiviewVPD)
 data <- load_app_data(example_data_dir("full"))
 one_school <- data$schools$school_id[1]
@@ -204,6 +193,6 @@ build_proximity_table(nearby$low_vaccine_facilities, searched = TRUE)
 
 To save a map as PNG, or a table as PNG or PDF, you also need Chrome and:
 
-```{r}
+```r
 install.packages(c("webshot2", "chromote"))
 ```

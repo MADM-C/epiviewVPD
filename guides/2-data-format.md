@@ -1,24 +1,13 @@
----
-title: "Data format"
-output: rmarkdown::html_vignette
-vignette: >
-  %\VignetteIndexEntry{Data format}
-  %\VignetteEngine{knitr::rmarkdown}
-  %\VignetteEncoding{UTF-8}
----
+# Data format
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(eval = FALSE)
-```
-
-This guide is the full reference for the data files. The [README](../README.md)
-covers the basic dashboard, and [Adding more](adding-more.Rmd) covers the
-optional extras. It uses the `app_data` folder and `my_settings.R` file from the
-README's [Use your own data](../README.md#use-your-own-data) steps.
+This guide is the full reference for the data files. The basic dashboard needs
+only the first three; [Adding more](5-adding-more.md) covers the optional
+extras. It uses the `app_data` folder and `my_settings.R` file from
+[Run the dashboard with your data](3-own-data.md).
 
 The made-up example files show the format. To find them on your computer, run:
 
-```{r}
+```r
 library(epiviewVPD)
 example_data_dir()         # the three basic files
 example_data_dir("full")   # every file
@@ -35,10 +24,10 @@ folder.
 | `counties.csv` | County | Basic dashboard: county coverage map |
 | `schools.csv` | School | Basic dashboard: school map and table |
 | `cases.csv` | County, year, and age group | Basic dashboard: case map, table, and chart |
-| `facilities.csv` | Child care program | [Child cares](adding-more.Rmd#child-cares) |
-| `grades.csv` | School and grade | [Grade-level coverage](adding-more.Rmd#grade-level-coverage) |
-| `districts.csv` | School district | [School districts](adding-more.Rmd#school-districts) |
-| `healthcare_centers.csv` | Healthcare location | [Proximity search](adding-more.Rmd#proximity-search) |
+| `facilities.csv` | Child care program | [Child cares](5-adding-more.md#child-cares) |
+| `grades.csv` | School and grade | [Grade-level coverage](5-adding-more.md#grade-level-coverage) |
+| `districts.csv` | School district | [School districts](5-adding-more.md#school-districts) |
+| `healthcare_centers.csv` | Healthcare location | [Proximity search](5-adding-more.md#proximity-search) |
 | `county_boundaries.geojson` | County | Optional. Downloads from the Census if left out |
 | `district_boundaries.geojson` | School district | Optional. Downloads from the Census if left out |
 
@@ -74,13 +63,13 @@ don't have or can't share.
 If your data marks withheld values with a code, such as `*`, list it in
 `my_settings.R`. Find this line:
 
-```{r}
+```r
 redacted_codes = character(0),
 ```
 
 and change it to list your codes:
 
-```{r}
+```r
 redacted_codes = c("*", "S"),
 ```
 
@@ -151,11 +140,11 @@ district boundaries. There is no matching by name.
 
 **Census boundaries.** Leave the boundary files out, and the dashboard
 downloads them for the state on the `geography` line of `my_settings.R`
-(README [step 3](../README.md#use-your-own-data)). You can also choose the type
+([step 4](3-own-data.md#step-4-set-your-state)). You can also choose the type
 of school district (`"unified"`, `"elementary"`, or `"secondary"`) and the
 Census year:
 
-```{r}
+```r
 geography = list(state = "WI", district_type = "unified", year = 2023),
 ```
 
@@ -188,7 +177,7 @@ instead of the download. It needs:
 
 To turn a shapefile into a GeoJSON file:
 
-```{r}
+```r
 bounds <- sf::st_read("my_counties.shp")
 bounds <- sf::st_transform(bounds, 4326)
 # Replace NAME with the column that holds your county names.

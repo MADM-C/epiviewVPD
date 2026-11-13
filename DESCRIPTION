@@ -11,7 +11,7 @@ Description: A suite of different visualization options for vaccination coverage
   RShiny wrapper is also included, to make more interconnected visualizations.
 License: MIT + file LICENSE
 Depends: 
-  R (>= 4.3.0)
+  R (>= 4.5.0)
 Imports: 
   dplyr,
   DT,
