@@ -97,6 +97,7 @@ extract_facility_choices <- function(school_data = NULL, childcare_data = NULL, 
     label <- paste0(kind, "_name")
     if (is.null(data) || !all(c(id, label) %in% names(data))) next
     valid <- !is.na(data[[id]]) & !is.na(data[[label]]) & nzchar(data[[label]])
+    if (!any(valid)) next
     labels <- as.character(data[[label]][valid])
     choices <- c(choices, stats::setNames(paste0(kind, ":", data[[id]][valid]), labels))
   }
