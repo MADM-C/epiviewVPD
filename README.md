@@ -1,8 +1,8 @@
-# epiviewVPD
+# epiviewVPD <img src="man/figures/logo.png" align="right" height="139" alt="epiviewVPD logo" />
 
 MADM-C's epiviewVPD package provides a framework for users to create their own 
 version of the Midwest EpiView: MMR Coverage and Measles Dashboard with their 
-own MMR and measles data. 
+own MMR and measles data.
 
 epiviewVPD was developed by the [Midwest Analytics and Disease Modeling Center (MADMC)](https://www.sph.umn.edu/research/centers/midwest-analytics-and-disease-modeling/) 
 at the University of Minnesota School of Public Health. It is built in **R** 
