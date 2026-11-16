@@ -15,7 +15,7 @@ This readme covers the **basic dashboard**, which needs only three data files.
 It has county and school coverage maps, a historical case map, and summary tables
 and charts that show the same data in a different format. To add an additional 
 facility type (such as child cares), grade-level data, school districts, or the
-proximity search map, see [Adding more](vignettes/adding-more.Rmd).
+proximity search map, see [Adding more](vignettes/adding-more.md).
 
 **On this page:** [Requirements](#requirements) |
 [Data format](#data-format) |
@@ -78,7 +78,7 @@ Rules for values:
   check them before saving.
 - Write numbers without commas: `1250`, not `1,250`.
 
-The [data format guide](vignettes/data-format.Rmd) contains an extended explanation
+The [data format guide](vignettes/data-format.md) contains an extended explanation
 and guide.
 
 ## Run the dashboard
@@ -129,7 +129,7 @@ run_dashboard(data_dir = "app_data", config = "my_settings.R")
 
 If something in your data needs fixing, the dashboard stops and names the
 file, the column, and what to change. The
-[data format guide](vignettes/data-format.Rmd) has a troubleshooting table.
+[data format guide](vignettes/data-format.md) has a troubleshooting table.
 
 ## Run individual visualizations
 
