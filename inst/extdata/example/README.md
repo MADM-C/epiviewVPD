@@ -50,7 +50,7 @@ dir.create("app_data", recursive = TRUE, showWarnings = FALSE)
 file.copy(list.files(example_data_dir("full"), full.names = TRUE), "app_data")
 ```
 
-See the [data-format guide](https://github.com/MADM-C/epiviewVPD/blob/main/vignettes/data-format.Rmd) for every
+See the [data-format guide](https://github.com/MADM-C/epiviewVPD/blob/main/guides/2-data-format.md) for every
 column's type, units, identifiers, missing-data rules, feature dependencies,
 and a minimal dataset preparation example. The [project README](https://github.com/MADM-C/epiviewVPD#readme)
 explains installation and settings. Replace fictional observations and their

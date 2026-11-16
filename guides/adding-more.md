@@ -1,12 +1,12 @@
 # Adding more to your dashboard
 
-The [README](../README.md) covers the basic dashboard, which needs only
+[Get started](1-get-started.md) covers the basic dashboard, which needs only
 `counties.csv`, `schools.csv`, and `cases.csv`. This guide covers everything
 else epiviewVPD can show. Add these one at a time, once the basic dashboard is
 working with your data. It uses the `app_data` folder and `my_settings.R` file
-from the README's [Use your own data](../README.md#use-your-own-data) steps.
+from [Run the dashboard with your data](3-own-data.md).
 
-The columns for each file are listed in the [data format guide](data-format.md).
+The columns for each file are listed in the [data format guide](2-data-format.md).
 
 ## What you can add
 
@@ -62,14 +62,14 @@ To find the full example files, run `example_data_dir("full")`.
 Add `facilities.csv`, with one row per child care program. Child cares appear
 on the map as soon as the file is there. Turn on `childcare_summary` to add the
 summary table. The columns are listed under `facilities.csv` in the
-[data format guide](data-format.md).
+[data format guide](2-data-format.md).
 
 ## Grade-level coverage
 
 Add `grades.csv`, with one row per grade in each school, and turn on
 `grade_plot` and `grade_table`. To see them, select a school on the Dashboard
 tab. The columns are listed under `grades.csv` in the
-[data format guide](data-format.md).
+[data format guide](2-data-format.md).
 
 ## School details
 
@@ -94,7 +94,7 @@ District boundaries download from the Census for the state in `my_settings.R`.
 For Census boundaries,
 `district_id` is the 7-character Census district code. You can use your own
 `district_boundaries.geojson` instead. The matching rules and the columns are
-in the [data format guide](data-format.md#school-districts).
+in the [data format guide](2-data-format.md#school-districts).
 
 ## Proximity search
 
@@ -148,7 +148,7 @@ file.edit(system.file("config", "measles_mn.R", package = "epiviewVPD"))
 ## Build these visualizations in R
 
 These examples use the full example data. To use your own data, load it as in
-the README's [Use your own data](../README.md#use-your-own-data-1).
+[Use your own data](4-visualizations.md#use-your-own-data).
 
 ```r
 library(epiviewVPD)
