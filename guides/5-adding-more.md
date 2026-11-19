@@ -1,53 +1,53 @@
-# Adding more to your dashboard
+# Additional features
 
-[Get started](1-get-started.md) covers the basic dashboard, which needs only
-`counties.csv`, `schools.csv`, and `cases.csv`. This guide covers everything
-else epiviewVPD can show. Add these one at a time, once the basic dashboard is
-working with your data. It uses the `app_data` folder and `my_settings.R` file
-from [Run the dashboard with your data](3-own-data.md).
+The core dashboard uses `counties.csv`, `schools.csv`, and `cases.csv`.
+Additional files and settings enable child care, grade-level, school district,
+and proximity map features.
 
-The columns for each file are listed in the [data format guide](2-data-format.md).
+This guide uses the `app_data` folder and `my_settings.R` file described in the
+[Dashboard guide](3-own-data.md). See the [Data format](2-data-format.md) guide
+for file and variable requirements.
 
-## What you can add
+## Available features
 
-| Add | What you get | Data to add | Settings to turn on |
+| Feature | Dashboard output | Data | Setting |
 |---|---|---|---|
-| [Child cares](#child-cares) | Child cares on the map, and a child care summary table | `facilities.csv` | `childcare_summary` |
-| [Grade-level coverage](#grade-level-coverage) | A chart and table for each school by grade | `grades.csv` | `grade_plot`, `grade_table` |
-| [School details](#school-details) | A details panel and downloadable report for a selected school | More columns in `schools.csv` (optional) | `facility_overview` |
-| [School districts](#school-districts) | District maps and district summary tables | `districts.csv`, and a `district_id` column in `schools.csv` | None |
-| [Proximity search](#proximity-search) | Find low-coverage schools and child cares near an address or school | `healthcare_centers.csv` (optional) | `proximity_map`, `proximity_table` |
-| [More county detail](#more-county-detail) | Demographics in the county pop-ups | More columns in `counties.csv` | None |
+| [Child cares](#child-cares) | Child cares locations and vaccination coverage on the map and summary table | `facilities.csv` | `childcare_summary` |
+| [Grade-level coverage](#grade-level-coverage) | Chart and table for each school with vaccination coverage by grade-level | `grades.csv` | `grade_plot`, `grade_table` |
+| [School details](#school-details) | Additional details with the school map and downloadable report for a selected school | Optional variables in `schools.csv` | `facility_overview` |
+| [School districts](#school-districts) | Additional details with the school map and downloadable report for the selected school, in addition to an additional dropdown option for the sidebar. | `districts.csv`, and  `district_id` in `schools.csv` | None |
+| [More county detail](#county-demographics) | Demographic information in county pop-ups | Optional variables in `counties.csv` | None |
+| [Proximity map](#proximity-search) tab | Identify healthcare facilities and low-coverage schools and child cares near a selected address | `healthcare_centers.csv` (optional) | `proximity_map`, `proximity_table` |
 | [Resources tab](#resources-tab) | FAQ, links, and case study downloads | None | `resources` |
 
-## Turn a feature on
+## Enable features
 
-Open `my_settings.R`. The `features` list at the top has a line for each
-feature. Change `FALSE` to `TRUE` for the ones you want:
+In `my_settings.R`, change the relevant values in the `features` list from
+`FALSE` to `TRUE`. For example:
 
 ```r
 grade_plot = TRUE,           # grade-level chart (needs grades.csv)
 grade_table = TRUE,          # grade-level table (needs grades.csv)
 ```
 
-Save the file, add any data files the feature needs to `app_data`, and start the
-dashboard again:
+Save the settings file, add any required data files to `app_data`, and run the
+dashboard:
 
 ```r
 run_dashboard(data_dir = "app_data", config = "my_settings.R")
 ```
 
-If a feature is on and its data file is missing, the dashboard stops and names
-the file.
+If an enabled feature requires a missing file, the dashboard stops and
+identifies the file.
 
-The text on the dashboard's tabs describes the basic dashboard. When you add
-features, you may want to change it, in the `text` section of `my_settings.R`
-(for example `dashboard_intro`, `summary_intro`, and `about_body`).
+The default tab text describes the basic dashboard. Update the relevant
+settings in the `text` section of `my_settings.R`, such as `dashboard_intro`,
+`summary_intro`, and `about_body`, to reflect the features you enable.
 
-## See everything turned on
+## View the full dashboard
 
-To see the complete dashboard with the made-up example data, make a small
-settings file that turns on every feature, and run it with the full example:
+To view all features with artificial data, create a settings file that enables
+every feature and run the full example:
 
 ```r
 library(epiviewVPD)
@@ -55,21 +55,21 @@ writeLines("list(features = all_features())", "all_features_settings.R")
 run_dashboard(data_dir = example_data_dir("full"), config = "all_features_settings.R")
 ```
 
-To find the full example files, run `example_data_dir("full")`.
+To locate the full artificial data files, run `example_data_dir("full")`.
 
 ## Child cares
 
-Add `facilities.csv`, with one row per child care program. Child cares appear
-on the map as soon as the file is there. Turn on `childcare_summary` to add the
-summary table. The columns are listed under `facilities.csv` in the
-[data format guide](2-data-format.md).
+Add `facilities.csv`, with one row per child care program. Programs appear on
+the map when the file is present. Enable `childcare_summary` to add the summary
+table. See `facilities.csv` in the [Data format](2-data-format.md) for variable
+requirements.
 
 ## Grade-level coverage
 
 Add `grades.csv`, with one row per grade in each school, and turn on
 `grade_plot` and `grade_table`. To see them, select a school on the Dashboard
-tab. The columns are listed under `grades.csv` in the
-[data format guide](2-data-format.md).
+tab. The columns are listed under `grades.csv` in the [data format
+guide](2-data-format.md).
 
 ## School details
 
@@ -91,10 +91,10 @@ each school to its district. There's no setting to turn on: a "School
 Districts" choice appears once the data is there.
 
 District boundaries download from the Census for the state in `my_settings.R`.
-For Census boundaries,
-`district_id` is the 7-character Census district code. You can use your own
-`district_boundaries.geojson` instead. The matching rules and the columns are
-in the [data format guide](2-data-format.md#school-districts).
+For Census boundaries, `district_id` is the 7-character Census district code.
+You can use your own `district_boundaries.geojson` instead. The matching rules
+and the columns are in the [data format
+guide](2-data-format.md#school-districts-matching).
 
 ## Proximity search
 
@@ -102,10 +102,10 @@ Turn on `proximity_map` and `proximity_table` to add a tab that finds
 low-coverage schools and child cares near an address or school. It uses your
 existing data.
 
-To show healthcare locations on that map, add `healthcare_centers.csv` with
-the columns `name`, `latitude`, and `longitude`.
+To show healthcare locations on that map, add `healthcare_centers.csv` with the
+columns `name`, `latitude`, and `longitude`.
 
-## More county detail
+## County demographics
 
 Add these optional columns to `counties.csv` to show them in the county
 pop-ups:
@@ -145,10 +145,10 @@ ones most states will want to fill in. Logo files go in the same folder as
 file.edit(system.file("config", "measles_mn.R", package = "epiviewVPD"))
 ```
 
-## Build these visualizations in R
+## Build additional visualizations in R
 
-These examples use the full example data. To use your own data, load it as in
-[Use your own data](4-visualizations.md#use-your-own-data).
+These examples use artificial data. To use your own data, load it as in [Use
+your own data](4-visualizations.md#use-your-own-data).
 
 ```r
 library(epiviewVPD)

@@ -1,39 +1,16 @@
-# Get started
+# Getting started
 
-This guide takes you from a computer without R to the dashboard running with
-the made-up example data. When it works, go on to
-[Run the dashboard with your data](3-own-data.md).
+Install epiviewVPD from GitHub and use the included artificial data to open and
+explore the core interactive dashboard.
 
-## Step 1: Install R
+## Requirements
 
-R is the program that runs epiviewVPD. Download it from
-<https://cran.r-project.org>.
+- R version 4.5 or newer
+- An internet connection for installation and to generate the background maps
+- RStudio is recommended because Pandoc is required to download dashboard
+  reports
 
-- **Windows:** click **Download R for Windows**, then **base**, then the
-  download link at the top of the page. Run the installer and accept the
-  defaults.
-- **Mac:** click **Download R for macOS**, then the `.pkg` file for your
-  computer. To check which one you need, open the Apple menu and choose
-  **About This Mac**. If it lists an **Apple M** chip, use the `arm64` file;
-  if it lists an **Intel** processor, use the `x86_64` file.
-
-epiviewVPD needs R **4.5 or newer** and won't install on older versions. If
-you already have R, run `R.version.string` in the Console to see your version,
-and install the new one if it's older.
-
-## Step 2: Install RStudio
-
-RStudio is a free program that makes R easier to use. Download **RStudio
-Desktop** from <https://posit.co/download/rstudio-desktop/>, run the
-installer, and accept the defaults.
-
-Open RStudio. The **Console** is the panel at the bottom left with a `>`
-prompt. You run each line of code in this guide by pasting it there and
-pressing **Enter**.
-
-## Step 3: Install epiviewVPD
-
-Run these two lines in the Console:
+## Install epiviewVPD
 
 ```r
 install.packages("remotes")
@@ -41,81 +18,50 @@ remotes::install_github("MADM-C/epiviewVPD", upgrade = "never")
 ```
 
 The first line installs remotes, a tool for installing R packages from GitHub.
-The second installs epiviewVPD and the other packages it needs. The first time
-can take several minutes. If R asks whether to install packages from sources,
-type `no` and press Enter.
+The second installs epiviewVPD and its required packages. Initial installation
+may take several minutes. If prompted to install packages from source, enter
+`no`.
 
-You only need to do this once. To get a newer version of epiviewVPD later, run
-the second line again.
+To update epiviewVPD, rerun the `install_github()` command.
 
-### If the install fails
+## Open the interactive dashboard
 
-| What you see | What to do |
-|---|---|
-| `cannot remove prior installation of package`, or `Permission denied` | A package being updated is in use. Close every R and RStudio window, open RStudio again, and run the two install lines before anything else. |
-| `this R is version ..., package 'epiviewVPD' requires R >= 4.5.0` | R is too old. Install a current version ([step 1](#step-1-install-r)). |
-| `dependencies ... are not available for package 'epiviewVPD'` | One of the other packages didn't install. Scroll up to the first error and look for it in this table. If R is older than 4.5 (check with `R.version.string`), install a current version ([step 1](#step-1-install-r)). |
-| `there is no package called 'remotes'` | Run `install.packages("remotes")` first. |
-
-If none of these fit, see [Questions or problems?](#questions-or-problems).
-
-## Step 4: Try the example
+In the R Console, run:
 
 ```r
 library(epiviewVPD)
 run_dashboard(data_dir = example_data_dir())
 ```
 
-The dashboard opens in a new window. Everything in the example is made up,
-including the state and county boundaries. You need an internet connection
-for the background map.
+The example uses artificial data, including artificial vaccine coverage data
+and artificial state and county boundaries. To stop the dashboard, close its
+window and click **Stop** in the Console or press **Esc**.
 
-To stop the dashboard, close its window, then click the red **Stop** button in
-the Console (or press **Esc** there). The `>` prompt comes back when it has
-stopped.
-
-## A tour of the dashboard
-
-The example shows the **basic dashboard**, which needs only three data files.
-
-**Dashboard tab.** Choose an outcome on the left. **Vaccine coverage** colors
-each county by coverage. Click a county, or pick one from the list, to see its
-schools on the map to the right. Hover over a school for its name and
-coverage.
-
-![County coverage map and the schools in one county](../man/figures/dashboard-coverage.jpg)
-
-**Historical cases** shows the number of cases in each county as a circle.
-Use the slider to choose the years and the list to choose an age group.
-
-![Map of historical cases by county](../man/figures/dashboard-cases.jpg)
-
-**Summary Figures tab.** Choose an outcome and a county. **School vaccine
-coverage** lists the county's schools with their coverage and enrollment.
-**Historical cases** shows a chart and a table of cases by year and age group.
-**Download Summary** saves what you see as a report.
-
-![Chart and table of cases by year and age group for one county](../man/figures/summary-cases.png)
-
-**About tab.** What the dashboard shows, definitions, and notes about the
-data. You write this text in your settings file.
-
-![The About tab](../man/figures/about.png)
-
-To see every optional feature with the example data, see
-[See everything turned on](5-adding-more.md#see-everything-turned-on).
+The core dashboard includes county and school vaccination coverage, historical
+case data, summary figures, and an About tab. To view the optional features
+with the artificial data, including the Proximity Map and Resources tab, see
+[View the full dashboard](5-adding-more.md#view-the-full-dashboard) in the
+Adding more guide.
 
 ## Next steps
 
-1. [Set up your data](2-data-format.md): what goes in each file.
-2. [Run the dashboard with your data](3-own-data.md).
-3. [Maps and charts without the dashboard](4-visualizations.md).
-4. [Adding more](5-adding-more.md): child cares, grade-level coverage, school
-   districts, and more.
+- [Data format](2-data-format.md): Review the required files and variables.
+- [Dashboard guide](3-own-data.md): Configure the dashboard to use your data
+- [Maps and charts without the dashboard](4-visualizations.md): Build and save
+  standalone visualizations
+- [Adding more](5-adding-more.md): Configure optional dashboard features.
 
-## Questions or problems?
+## Installation troubleshooting
 
-Open an issue on [GitHub Issues](https://github.com/MADM-C/epiviewVPD/issues)
-with the code you ran, the full error message, and the output of
-`R.version.string` and `packageVersion("epiviewVPD")`. Please don't attach
-real data. You can also email [madmc@umn.edu](mailto:madmc@umn.edu).
+| Error message | Explanation |
+|---|---|
+| `cannot remove prior installation of package`, or `Permission denied` | A package being updated is in use. Close all R and RStudio windows, reopen RStudio, and run the two installation lines before running any other code. |
+| `this R is version ..., package 'epiviewVPD' requires R >= 4.5.0` | Install R version 4.5 or newer. |
+| `dependencies ... are not available for package 'epiviewVPD'` | A required package did not install. Scroll up to the first error message and check whether it appears in this table. If your R version is older than 4.5, install R version 4.5 or newer. You can check your version with `R.version.string`. |
+| `there is no package called 'remotes'` | Run `install.packages("remotes")` first. |
+
+For other issues, open a [GitHub
+Issue](https://github.com/MADM-C/epiviewVPD/issues) with the code, full error
+message, and output of `R.version.string` and `packageVersion("epiviewVPD")`.
+Please don't attach real data. You can also email our team at:
+[madmc@umn.edu](mailto:madmc@umn.edu).

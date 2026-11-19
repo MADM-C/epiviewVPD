@@ -1,21 +1,25 @@
-# Maps and charts without the dashboard
+# Visualizations without the interactive dashboard
 
-You can build each map, chart, and table from the dashboard in R, without
-opening the dashboard, and save it as a file for a report or a website.
+Users can build static maps, charts, and tables in R without opening the
+interactive dashboard, and save them as standalone files. This option serves as
+a good alternative to the dashboard if the user is only interested in specific
+visualizations or lacks the ability to host the dashboard.
 
-## Load the data
+## Load data
 
-This uses the made-up example. Your own data is covered
-[below](#use-your-own-data).
+The following examples use the included artificial data:
 
 ```r
 library(epiviewVPD)
 data <- load_app_data(example_data_dir())
 ```
 
-## Build a map, chart, or table
+See [Use your own data](#use-your-own-data) below for instructions on loading
+your own files.
 
-Each one displays when you run it:
+## Build visualizations
+
+Run a visualization function to display its output:
 
 ```r
 # County coverage map
@@ -42,16 +46,21 @@ render_cases_gt(data$cases, counties = data$counties)
 build_coverage_table(schools = data$schools, table_type = "school")
 ```
 
-Run `?build_cases_map` (or any function name) to see its options. To list
-every function, run `help(package = "epiviewVPD")`.
+For function arguments and additional options, use the function’s help page
+(e.g. `?build_cases_map`). To list the package’s documented functions, run:
 
-## Save to a file
+```r
+help(package = "epiviewVPD")
+```
 
-Maps and tables save as web pages (`.html`) that open in any browser. Charts
-save as images (`.png`). A saved map also makes a folder next to it (for
-example `coverage-map_files`); keep the two together, or the map won't show.
-Saving to a file that already exists stops with an error; add
-`overwrite = TRUE` to replace it.
+## Save visualizations
+
+Maps and tables save as HTML files; charts are saved as PNG files. A saved map
+also creates a companion folder, such as `coverage-map_files`. Keep the HTML
+file and companion folder together so the map displays correctly.
+
+Saving to an existing file produces an error. Add `overwrite = TRUE` to replace
+it.
 
 ```r
 dir.create("outputs")
@@ -68,10 +77,9 @@ save_table(coverage_table, "outputs/school-coverage.html")
 
 ## Use your own data
 
-Use the `app_data` folder and `my_settings.R` file from
-[Run the dashboard with your data](3-own-data.md). Copy this as it is. It
-reads your settings and passes on the ones that change how your files are
-read: your state, withheld-value codes, and age groups.
+Use the `app_data` folder and `my_settings.R` file in the [Dashboard
+guide](3-own-data.md). The following code reads the settings and passes the
+relevant values to `load_app_data()`:
 
 ```r
 library(epiviewVPD)
@@ -87,13 +95,15 @@ data <- load_app_data(
 )
 ```
 
-Then build what you need as above. Add `settings = settings` to the map and
-chart functions so they use your colors and labels:
+Build visualizations using the loaded data. Add `settings = settings` to map
+and chart functions to apply the color and labels from your settings file:
 
 ```r
 build_coverage_map(data$counties, settings = settings)
 plot_epicurve(data$cases, counties = data$counties, settings = settings)
 ```
 
-For child cares, grade-level charts, district maps, and proximity search, see
-[Build these visualizations in R](5-adding-more.md#build-these-visualizations-in-r).
+For child cares, grade-level, school district, and proximity map
+visualizations, see [Build additional visualizations in
+R](5-adding-more.md#build-additional-visualizations-in-r) in the Adding more
+guide.

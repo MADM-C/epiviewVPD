@@ -1,164 +1,163 @@
-# Data format
+# Format Data
 
-This guide is the full reference for the data files. The basic dashboard needs
-only the first three; [Adding more](5-adding-more.md) covers the optional
-extras. It uses the `app_data` folder and `my_settings.R` file from
-[Run the dashboard with your data](3-own-data.md).
+This guide describes the files and variables used by epiviewVPD. The core
+dashboard requires `counties.csv`, `schools.csv`, and `cases.csv`; additional
+files support optional features described in the [Adding
+more](5-adding-more.md) guide.
 
-The made-up example files show the format. To find them on your computer, run:
+The instructions use the `app_data` folder and `my_settings.R` file described
+in the [Dashboard guide](3-own-data.md). For further guidance, the included
+artificial data provides examples of the required data formats. To view these,
+run the following code in the R Console:
 
 ```r
 library(epiviewVPD)
-example_data_dir()         # the three basic files
+example_data_dir()         # the three core files
 example_data_dir("full")   # every file
 ```
 
-## Which files you need
+## Data files
 
-The basic dashboard needs three files: `counties.csv`, `schools.csv`, and
-`cases.csv`. Everything else is optional. Save all of them in your `app_data`
-folder.
+| File | One row per | Description | Purpose |
+|---|---|---|---|
+| `counties.csv` | County | County-level vaccination coverage map | Provides county geographic information and county vaccination coverage |
+| `schools.csv` | School | School-level vaccination coverage map and tables | Provides the school’s location, vaccination coverage, and (optional) additional school |
+| `cases.csv` | County, year, and age group | Surveillance map, table, and charts with past cases | Provides the county location and total number of historic measles cases |
+| `facilities.csv` | Child care program | [Child care](5-adding-more.md#child-cares) vaccination coverage map and tables |  |
+| `grades.csv` | School and grade | [Grade-level vaccination coverage](5-adding-more.md#grade-level-coverage) tables and figures |  |
+| `districts.csv` | School district | [School districts](5-adding-more.md#school-districts) vaccination coverage map and tables |  |
+| `healthcare_centers.csv` | Healthcare location | [Proximity map tab](5-adding-more.md#proximity-search) to identify nearby healthcare clinics |  |
+| `county_boundaries.geojson` | County | Optional county boundaries; downloaded from the census if omitted |  |
+| `district_boundaries.geojson` | School district | Optional school district boundaries; downloaded from the census if omitted |  |
 
-| File | One row per | What it's for |
+If an enabled feature requires a missing file, the dashboard stops and
+identifies the file.
+
+## File specifications
+
+### `counties.csv`
+
+One row per county for one reporting period.
+
+| Variable | Requirement | Description |
 |---|---|---|
-| `counties.csv` | County | Basic dashboard: county coverage map |
-| `schools.csv` | School | Basic dashboard: school map and table |
-| `cases.csv` | County, year, and age group | Basic dashboard: case map, table, and chart |
-| `facilities.csv` | Child care program | [Child cares](5-adding-more.md#child-cares) |
-| `grades.csv` | School and grade | [Grade-level coverage](5-adding-more.md#grade-level-coverage) |
-| `districts.csv` | School district | [School districts](5-adding-more.md#school-districts) |
-| `healthcare_centers.csv` | Healthcare location | [Proximity search](5-adding-more.md#proximity-search) |
-| `county_boundaries.geojson` | County | Optional. Downloads from the Census if left out |
-| `district_boundaries.geojson` | School district | Optional. Downloads from the Census if left out |
+| `county_fips`, `county_name` | At least one | County code or name; each row requires at least one |
+| `enroll` | Required | Number of students enrolled |
+| `full_vax_pct` | Required | Percentage of students fully vaccinated |
+| `full_vax` | Optional | Number fully vaccinated; used to calculate the statewide rate above the county map |
+| `students_of_color_pct` | Optional | Percentage of students of color |
+| `frl_eligible_pct` | Optional | Percent eligible for free or reduced-price meals |
+| `reporting_status` | Optional | `reported` or `not_reported` |
 
-If a feature is turned on and its file is missing, the dashboard stops and
-names the file.
+### `schools.csv`
 
-## Rules for every file
+One row per school.
 
-- Save CSV files as comma-separated text with a header row. In Excel, choose
-  "CSV UTF-8". A plain "CSV" file still loads, with a warning to check its
-  accented names.
-- File and column names must match exactly, including capitalization.
-- **Required** columns must be in the file. **Optional** columns can be left
-  out.
-- **Leave unknown values blank** and keep the column. IDs and names can't be
-  blank.
-- Extra columns are ignored, but every column needs its own nonblank header.
+| Variable | Requirement | Description |
+|---|---|---|
+| `school_id` | Required | Unique ID used to link to `grades.csv` |
+| `school_name` | Required | School name to display |
+| `latitude`, `longitude` | Required | Coordinates in decimal degrees. Required to place the school on the map |
+| `enroll` | Required | Number of students enrolled |
+| `full_vax_pct` | Required | Percentage of students fully vaccinated |
+| `county_fips`, `county_name` | Optional | School's county; determined from coordinate if neither fips or name are included |
+| `school_type` | Optional | A label such as `Public`, `Private`, or `Charter` |
+| `full_vax` | Optional | Number fully vaccinated |
+| `partial_vax` | Optional | Number partly vaccinated or with no doses |
+| `partial_vax_pct` | Optional | Percentage partly vaccinated or with no doses |
+| `medical_pct` | Optional | Percentage with medical exemptions |
+| `nonmedical_pct` | Optional | Percentage with nonmedical exemptions |
+| `grade_range` | Optional | A label such as `K-5`, shown in the school map pop-up |
+| `district_id` | Optional | School's district; blank if the school does not belong to any district |
+| `home_languages` | Optional | Languages spoken at home, such as `"English, Spanish"` (in quotes, because of the comma). Shown in the school details panel |
+| `contact_info` | Optional | Contact information for the school administration, such as an email address. Displayed in the proximity search |
+| `address` | Optional | School address, used to differentiate between schools with the same name |
+| `reporting_status` | Optional | `reported` or `not_reported` |
 
-| Kind of value | How to write it |
-|---|---|
-| IDs | Text. Excel removes leading zeros from codes like `01001`, so check them before saving. Leading zeros aren't added for you |
-| Counts | Whole numbers, `0` or more, without commas: `1250` |
-| Coverage percentages (`full_vax_pct`, `partial_vax_pct`, `medical_pct`, `nonmedical_pct`) | `0` to `100`: `92.4`, not `0.924` (which loads, but means under 1%). A trailing `%` is allowed. Can be a range such as `>95` or `<5` |
-| Demographic percentages (`students_of_color_pct`, `frl_eligible_pct`) | Plain numbers from `0` to `100`, without `%` or ranges |
-| Latitude, longitude | Decimal degrees: `44.95`, `-93.09`. Every school needs both. A child care program with no known location can leave both blank |
-| Years | Whole calendar years: `2024` |
+### `cases.csv`
 
-### Blank, zero, and withheld values
+One row per county, year, and age group.
 
-`0` means a real zero, and blank means unknown. Don't write `0` for a value you
-don't have or can't share.
+| Variable | Requirement | Description |
+|---|---|---|
+| `county_fips`, `county_name` | One of them | County code or name; each row requires at least one |
+| `year` | Required | Calendar year; cannot be blank |
+| `n_cases` | Required | Number of cases |
+| `age_group` | Optional | A label such as `0-4` or `Unknown` |
 
-If your data marks withheld values with a code, such as `*`, list it in
-`my_settings.R`. Find this line:
+- **Unique records:** Do not include multiple rows for the same county, year,
+  and age group.
+- **All-ages totals:** Do not include all-ages totals alongside age-group rows.
+  Rows are summed, so totals would count cases twice. If the data is not
+  stratified by age, omit `age_group`.
+- **Age-group labels:** Use consistent labels. For example, `0-4` with a hyphen
+  and `0–4` with a long dash are treated as different groups.
+- **Missing records:** By default, a county and year without a row is treated
+  as having zero cases. If missing records represent places that did not
+  report, change `case_data = list(missing_records = "zero"),` to `case_data =
+  list(missing_records = "unknown"),` in `my_settings.R`. A blank `n_cases` is
+  always treated as unknown.
+- **Age-group order.** Groups sort by their first number. To set the order
+  yourself, change `case_age_groups = NULL,` in `my_settings.R` to list every
+  group: `case_age_groups = c("0-4", "5-17", "18+", "Unknown"),`. This must
+  include all age groups in `cases.csv`, or else the dashboard does not run.
+- **Years.** The dashboard displays every year from the first to the last in
+  `cases.csv`. To change the years on the map slider, change `case_years =
+  NULL,` in `my_settings.R`, giving all three values: `case_years = list(min =
+  2015, max = 2025, selected = c(2020, 2025)),`.
 
-```r
-redacted_codes = character(0),
-```
+### `facilities.csv`
 
-and change it to list your codes:
+One row per child care program.
 
-```r
-redacted_codes = c("*", "S"),
-```
+| Variable | Requirement | Description |
+|---|---|---|
+| `facility_id` | Required | A unique ID, such as a license number |
+| `facility_name` | Required | The facility name to display |
+| `latitude`, `longitude` | Required | Decimal degrees. Leave both blank for a facility with no known location |
+| `enroll` | Required | Number of children enrolled |
+| `full_vax_pct` | Required | Percent fully vaccinated among eligible children |
+| `full_vax` | Optional | Number fully vaccinated |
+| `enroll_eligible` | Optional | Number of children old enough for the vaccine. Fills the "MMR Eligible" column in the child care table, which shows `NA` without it. If every enrolled child is eligible, use the same number as `enroll` |
+| `county_fips`, `county_name` | Optional | The facility's county. Found from the coordinates if both are blank |
+| `reporting_status` | Optional | `reported` or `not_reported` |
 
-Those codes then count as blank. Other text in a number column, such as `N/A`,
-stops the dashboard.
+### `grades.csv`
 
-Ranges such as `>95` show as written. To choose a map color, the dashboard
-moves a range 1 point past its number, so `>95` counts as 96 and `<5` as 4. To
-change that 1, change `blurred_offset = 1` in `my_settings.R`.
+One row per grade in each school. Don't include an all-grades row.
 
-### Schools and counties that didn't report
+| Variable | Requirement | Description |
+|---|---|---|
+| `school_id` | Required | Must match a `school_id` in `schools.csv` |
+| `grade` | Required | `K` or `0` for kindergarten (pick one), then `1` through `12` |
+| `enroll` | Required | Number enrolled in that grade |
+| `full_vax_pct` | Required | Percent fully vaccinated in that grade |
+| `full_vax` | Optional | Number fully vaccinated |
+| `partial_vax_pct` | Optional | Percent partially vaccinated or with no doses |
+| `medical_pct`, `nonmedical_pct` | Optional | Percent with medical or nonmedical exemptions |
+| `reporting_status` | Optional | `reported` or `not_reported` |
 
-`counties.csv`, `schools.csv`, `facilities.csv`, `grades.csv`, and
-`districts.csv` can have a `reporting_status` column. Write `reported`,
-`not_reported`, or leave it blank.
+### `districts.csv`
 
-A `not_reported` row shows its vaccination values as unknown, and keeps its
-name and enrollment. Each file stands on its own: a school marked
-`not_reported` in `schools.csv` doesn't change its rows in `grades.csv`.
+One row per school district.
 
-### Coverage and counts
+| Variable | Requirement | Description |
+|---|---|---|
+| `district_id` | Required | A unique ID that matches the boundaries and `schools.csv` |
+| `district_name` | Required | The district name to display |
+| `enroll` | Required | Number of students enrolled |
+| `full_vax_pct` | Required | Percent fully vaccinated |
+| `full_vax` | Optional | Number fully vaccinated |
+| `reporting_status` | Optional | `reported` or `not_reported` |
 
-Enter `full_vax_pct` as reported. The dashboard doesn't recalculate it from
-counts. If a percentage is withheld, leave its count blank too, so the count
-doesn't give it away.
+### `healthcare_centers.csv`
 
-The statewide rate above the county map is the sum of `full_vax` divided by
-the sum of `enroll`. It needs both filled in for every county, and reads
-"Unknown" if some are blank.
+One row per location.
 
-## How counties are matched
-
-Each row finds its county in this order:
-
-1. `county_fips`, matching exactly.
-2. `county_name`, ignoring capitalization.
-3. Latitude and longitude, for schools and child cares with both county
-   columns blank.
-
-A `county_fips` with no match stops the dashboard. It doesn't fall back to the
-name. Fill in a county for schools near a county line, where the coordinates
-may place them in the wrong county.
-
-- **Census boundaries:** `county_fips` is the 5-character code (`"01001"`).
-  `county_name` is the Census name without "County". Where a city and county
-  share a name, such as Baltimore, MD, `Baltimore` is the county and
-  `Baltimore city` is the city.
-- **Your own boundaries:** use the exact names or codes in your file.
-
-Each county can appear in `counties.csv` only once. A county with no row shows
-unknown coverage.
-
-## School districts
-
-`district_id` must match exactly in `districts.csv`, `schools.csv`, and the
-district boundaries. There is no matching by name.
-
-- Census boundaries use the 7-character Census district code.
-- Your own boundaries can use any text ID that matches across files, such as
-  `"0001"`.
-- A `districts.csv` ID with no boundary stops the dashboard. A boundary with no
-  row shows unknown coverage.
-- A school with a blank `district_id` has no district. It still shows in county
-  maps, tables, and reports. A `district_id` that matches nothing gives a
-  warning.
-
-## Boundary files
-
-**Census boundaries.** Leave the boundary files out, and the dashboard
-downloads them for the state on the `geography` line of `my_settings.R`
-([step 4](3-own-data.md#step-4-set-your-state)). You can also choose the type
-of school district (`"unified"`, `"elementary"`, or `"secondary"`) and the
-Census year:
-
-```r
-geography = list(state = "WI", district_type = "unified", year = 2023),
-```
-
-The download needs internet the first time and is saved for later. Match the
-district type and year to your data.
-
-**Your own boundaries.** A boundary file in your `app_data` folder is used
-instead of the download. It needs:
-
-- One shape per county or district, with no repeats.
-- Valid Polygon or MultiPolygon shapes.
-- Coordinates in longitude and latitude (EPSG:4326). A file in another
-  coordinate system is converted if the file says which one it uses.
-- The properties below.
+| Variable | Requirement | Description |
+|---|---|---|
+| `name` | Required | The facility name to display |
+| `latitude`, `longitude` | Required | Decimal degrees. Can't be blank |
 
 ### `county_boundaries.geojson`
 
@@ -173,9 +172,143 @@ instead of the download. It needs:
 |---|---|---|
 | `district_id` | Required | District ID, different for each district |
 
+## General formatting requirements
+
+- Save CSV files with a header row. UTF-8 encoding is recommended. Files saved
+  in another encoding can still load, but the dashboard issues a warning to
+  check accented names.
+- File and variable/column names must match the names in this guide exactly,
+  including capitalization.
+- Include all **required** columns. **Optional** columns may be omitted.
+- **Leave unknown values blank** while retaining the variable. IDs and names
+  cannot be blank.
+- Extra columns are ignored, but every column must have a nonblank header
+
+| Value | Format |
+|---|---|
+| IDs | Text. Preserve leading zeros, such as `01001`; they are not added automatically. Excel may remove them. |
+| Counts | Nonnegative whole numbers without commas, such as `1250` |
+| Coverage percentages (`full_vax_pct`, `partial_vax_pct`, `medical_pct`, `nonmedical_pct`) | Values from `0` to `100`: `92.4`. A trailing `%` is allowed. A value of `0.924` is interpreted as less than 1%. |
+| Demographic percentages (`students_of_color_pct`, `frl_eligible_pct`) | Numeric values from `0` to `100`, without `%` signs or ranges. |
+| Latitude, longitude | Decimal degrees: `44.95`, `-93.09`. Both are required for schools. Both may be blank for a child care program with no known location. |
+| Years | Whole calendar years, such as `2024` |
+
+### Missing, zero, and withheld values
+
+Use `0` for a true zero and leave unknown or withheld values blank.
+
+If the data uses characters for withheld (or redacted) values, such as `*`,
+`S`, or `NA`, specify them in `my_settings.R` (approx. line 118). For example,
+replace:
+
+```r
+redacted_codes = character(0),
+```
+
+with:
+
+```r
+redacted_codes = c("*", "S", "NA"),
+```
+
+These codes are treated as blank. Other text in a numeric column, such as
+`N/A`, stops the dashboard.
+
+Ranges such as `>95` are displayed as entered. For map coloring, the dashboard
+assigns a value one percentage point beyond the stated threshold: `>95` is
+treated as 96, and `<5` as 4. To change this offset, update `blurred_offset =
+1` in `my_settings.R`.
+
+### Reporting status
+
+The files `counties.csv`, `schools.csv`, `facilities.csv`, `grades.csv`, and
+`districts.csv` may include a `reporting_status` variable. For this variable,
+enter `reported`, `not_reported`, or leave it as a blank value.
+
+For a row marked `not_reported`, vaccination values are displayed as unknown
+while the name and enrollment are retained. Reporting status applies within
+each file: marking a school as `not_reported` in `schools.csv` will not remove
+or modify its corresponding rows in `grades.csv` where grade-level enrollment
+counts may be stored.
+
+### Coverage percentages and counts
+
+Enter `full_vax_pct` as reported; the dashboard does not recalculate it from
+provided enrollment and vaccination counts.
+
+The statewide rate displayed above the county map is the sum of `full_vax`
+divided by the sum of `enroll`. Both columns need to be filled in for every
+county; it reads "Unknown" if some entries are blank.
+
+## County matching
+
+The dashboard matches records to counties in the following order:
+
+- `county_fips`, using an exact match.
+- `county_name`, ignoring capitalization.
+- Latitude and longitude, for schools and child cares when both county
+  variables are blank.
+
+An unmatched `county_fips` stops the dashboard; it does not fall back to the
+`county_name`. Specify the county for schools near a county line, where
+coordinates may place a school in the wrong county.
+
+- **Census boundaries:** `county_fips` is the 5-character code (`"01001"`).
+  `county_name` is the Census name without "County". Where a city and county
+  share a name, such as Baltimore, MD, `Baltimore` is the county and `Baltimore
+  city` is the city.
+- **Custom boundaries:** Use the names or codes in the boundary file.
+
+Each county may appear in `counties.csv` only once. A county with no row shows
+unknown coverage.
+
+## School districts matching
+
+`district_id` must match exactly in `districts.csv`, `schools.csv`, and the
+district boundaries. Districts are not matched by name.
+
+- Census boundaries use the 7-character district code from the U.S. Census.
+- Custom boundaries may use any text ID that matches across files, such as
+  `"0001"`.
+- A `districts.csv` ID with no boundary stops the dashboard. A boundary with no
+  row shows unknown coverage.
+- A school with a blank `district_id` has no district. It still shows in county
+  maps, tables, and reports.
+- A `district_id` that matches nothing gives a warning.
+
+## Boundary files
+
+**Census boundaries.** If you don’t include your own boundary files, epiviewVPD
+will download them from the U.S. Census based on the state specified in the
+geography line of `my_settings.R` ([Configure
+settings](3-own-data.md#configure-settings)). This also includes an option to
+select the type of school district boundaries (`"unified"`, `"elementary"`, or
+`"secondary"`) and the specific Census year:
+
+```r
+geography = list(state = "WI", district_type = "unified", year = 2023),
+```
+
+**Your own boundaries:** If a boundary file is included in your `app_data`
+folder, epiviewVPD will use this instead of downloading boundaries from the
+U.S. Census.
+
+A boundary file needs:
+
+- One shape per county or district, with no repeats.
+- Valid Polygon or MultiPolygon shapes.
+- Coordinates in longitude and latitude (EPSG:4326). A file in another
+  coordinate system is converted if the file says which one it uses.
+- Properties required for [county](#county_boundariesgeojson) and
+  [district](#district_boundariesgeojson) boundary files are listed above.
+
 ### Convert a shapefile
 
-To turn a shapefile into a GeoJSON file:
+It’s recommended for epiviewVPD users to utilize the option for downloading
+county and district boundary data from the U.S. Census. If you prefer to
+utilize your own shapefile data, ensure the shapefile is converted to a GeoJSON
+file (`4326` instructs R to convert to the appropriate geocoordinate reference
+system):
 
 ```r
 bounds <- sf::st_read("my_counties.shp")
@@ -185,136 +318,15 @@ names(bounds)[names(bounds) == "NAME"] <- "county_name"
 sf::st_write(bounds, "app_data/county_boundaries.geojson", delete_dsn = TRUE)
 ```
 
-## `counties.csv`
-
-One row per county, for one reporting period.
-
-| Column | Needed? | What to put in it |
-|---|---|---|
-| `county_fips`, `county_name` | One of them | County code or name. Each row needs at least one |
-| `enroll` | Required | Number of students enrolled |
-| `full_vax_pct` | Required | Percent fully vaccinated |
-| `full_vax` | Optional | Number fully vaccinated. Adds the statewide rate above the county map |
-| `students_of_color_pct` | Optional | Percent students of color. Shown in the county pop-up |
-| `frl_eligible_pct` | Optional | Percent eligible for free or reduced-price meals. Shown in the county pop-up |
-| `reporting_status` | Optional | `reported` or `not_reported` |
-
-## `schools.csv`
-
-One row per school.
-
-| Column | Needed? | What to put in it |
-|---|---|---|
-| `school_id` | Required | A unique ID. Links to `grades.csv` |
-| `school_name` | Required | The name to display |
-| `latitude`, `longitude` | Required | Decimal degrees. Needed to place the school on the map |
-| `enroll` | Required | Number of students enrolled |
-| `full_vax_pct` | Required | Percent fully vaccinated |
-| `county_fips`, `county_name` | Optional | The school's county. Found from the coordinates if both are blank |
-| `school_type` | Optional | A label such as `Public`, `Private`, or `Charter` |
-| `full_vax` | Optional | Number fully vaccinated |
-| `partial_vax` | Optional | Number partly vaccinated or with no doses |
-| `partial_vax_pct` | Optional | Percent partly vaccinated or with no doses |
-| `medical_pct`, `nonmedical_pct` | Optional | Percent with medical or nonmedical exemptions |
-| `grade_range` | Optional | A label such as `K-5`, shown in the school map pop-up |
-| `district_id` | Optional | The school's district. Blank if it has none |
-| `home_languages` | Optional | Languages spoken at home, such as `"English, Spanish"` (in quotes, because of the comma). Shown in the school details panel |
-| `contact_info` | Optional | Contact information, such as an email address. Shown in the proximity search |
-| `address` | Optional | The school's address |
-| `reporting_status` | Optional | `reported` or `not_reported` |
-
-## `cases.csv`
-
-One row per county, year, and age group.
-
-| Column | Needed? | What to put in it |
-|---|---|---|
-| `county_fips`, `county_name` | One of them | County code or name. Each row needs at least one |
-| `year` | Required | Calendar year. Can't be blank |
-| `n_cases` | Required | Number of cases |
-| `age_group` | Optional | A label such as `0-4` or `Unknown` |
-
-- **No repeats.** Two rows with the same county, year, and age group stop the
-  dashboard.
-- **No totals alongside age groups.** Rows are added together, so an all-ages
-  row counts those cases twice. With no age groups, leave out `age_group`.
-- **Keep labels identical.** `0-4` with a hyphen and `0–4` with a long dash are
-  two different groups.
-- **Missing rows count as zero.** A county and year with no row counts as `0`
-  cases. If your data leaves out places that didn't report, change
-  `case_data = list(missing_records = "zero"),` in `my_settings.R` to
-  `case_data = list(missing_records = "unknown"),`. A blank `n_cases` is always
-  unknown.
-- **Age group order.** Groups sort by their first number. To set the order
-  yourself, change `case_age_groups = NULL,` in `my_settings.R` to list every
-  group: `case_age_groups = c("0-4", "5-17", "18+", "Unknown"),`. Any other
-  group in `cases.csv` then stops the dashboard.
-- **Years.** The dashboard shows every year from the first to the last in
-  `cases.csv`. To change the years on the map slider, change `case_years = NULL,`
-  in `my_settings.R`, giving all three values:
-  `case_years = list(min = 2015, max = 2025, selected = c(2020, 2025)),`.
-
-## `facilities.csv`
-
-One row per child care program.
-
-| Column | Needed? | What to put in it |
-|---|---|---|
-| `facility_id` | Required | A unique ID, such as a license number |
-| `facility_name` | Required | The name to display |
-| `latitude`, `longitude` | Required | Decimal degrees. Leave both blank for a program with no known location |
-| `enroll` | Required | Number of children enrolled |
-| `full_vax_pct` | Required | Percent fully vaccinated among eligible children |
-| `full_vax` | Optional | Number fully vaccinated |
-| `enroll_eligible` | Optional | Number of children old enough for the vaccine. Fills the "MMR Eligible" column in the child care table, which shows `NA` without it. If every enrolled child is eligible, use the same number as `enroll` |
-| `county_fips`, `county_name` | Optional | The program's county. Found from the coordinates if both are blank |
-| `reporting_status` | Optional | `reported` or `not_reported` |
-
-## `grades.csv`
-
-One row per grade in each school. Don't include an all-grades row.
-
-| Column | Needed? | What to put in it |
-|---|---|---|
-| `school_id` | Required | Must match a `school_id` in `schools.csv` |
-| `grade` | Required | `K` or `0` for kindergarten (pick one), then `1` through `12` |
-| `enroll` | Required | Number enrolled in that grade |
-| `full_vax_pct` | Required | Percent fully vaccinated in that grade |
-| `full_vax` | Optional | Number fully vaccinated |
-| `partial_vax_pct` | Optional | Percent partly vaccinated or with no doses |
-| `medical_pct`, `nonmedical_pct` | Optional | Percent with medical or nonmedical exemptions |
-| `reporting_status` | Optional | `reported` or `not_reported` |
-
-## `districts.csv`
-
-One row per school district.
-
-| Column | Needed? | What to put in it |
-|---|---|---|
-| `district_id` | Required | A unique ID that matches the boundaries and `schools.csv` |
-| `district_name` | Required | The name to display |
-| `enroll` | Required | Number of students enrolled |
-| `full_vax_pct` | Required | Percent fully vaccinated |
-| `full_vax` | Optional | Number fully vaccinated |
-| `reporting_status` | Optional | `reported` or `not_reported` |
-
-## `healthcare_centers.csv`
-
-One row per location.
-
-| Column | Needed? | What to put in it |
-|---|---|---|
-| `name` | Required | The name to display |
-| `latitude`, `longitude` | Required | Decimal degrees. Can't be blank |
-
 ## Troubleshooting
 
-When something needs fixing, the dashboard stops and lists the file, column,
-and rows. Row 1 is the header. It can't tell whether your counts and
-percentages agree, or whether a school's county matches its location, so check
-those yourself.
+If there’s a formatting issue with the data, the dashboard stops and lists the
+file, column, and rows where the formatting issue was detected. **epiviewVPD is
+not able to check if vaccination counts and percentages agree or whether a
+school’s listed county or district matches its actual location.** These data
+checks should be performed before inputting your own data into the package.
 
-| The message says | What to do |
+| Error Message | What to do |
 |---|---|
 | `missing files required by enabled features` | Add the file, or turn off the features that use it |
 | `missing required column` | Add the column with that exact name, even if every value is blank |
