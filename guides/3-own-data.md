@@ -81,11 +81,8 @@ states will want to complete. The comments in the file describe each setting.
 run_dashboard(data_dir = "app_data", config = "my_settings.R")
 ```
 
-If data validation fails, the dashboard stops and the R Console identifies the
-relevant file, column, and issue. Correct the file, save it, and run the
-command again. See the [troubleshooting
-table](2-data-format.md#troubleshooting) in the data format guide for common
-messages.
+If data validation fails, see [Data errors](6-troubleshooting.md#data-errors)
+in the Troubleshooting guide for common messages and what to do.
 
 To run the dashboard in a later session, open the project and run:
 

@@ -30,8 +30,8 @@ example_data_dir("full")   # every file
 | `county_boundaries.geojson` | County | Optional county boundaries; downloaded from the census if omitted | Defines county shapes used to draw maps and match data records to counties |
 | `district_boundaries.geojson` | School district | Optional school district boundaries; downloaded from the census if omitted | Defines school district shapes used to draw maps and match district data by `district_id` |
 
-If an enabled feature requires a missing file, the dashboard stops and
-identifies the file.
+For missing files, data errors, and warnings, see the
+[Troubleshooting guide](6-troubleshooting.md#data-errors).
 
 ## File specifications
 
@@ -317,40 +317,3 @@ bounds <- sf::st_transform(bounds, 4326)
 names(bounds)[names(bounds) == "NAME"] <- "county_name"
 sf::st_write(bounds, "app_data/county_boundaries.geojson", delete_dsn = TRUE)
 ```
-
-## Troubleshooting
-
-If there’s a formatting issue with the data, the dashboard stops and lists the
-file, column, and rows where the formatting issue was detected. **epiviewVPD is
-not able to check if vaccination counts and percentages agree or whether a
-school’s listed county or district matches its actual location.** These data
-checks should be performed before inputting your own data into the package.
-
-| Error Message | What to do |
-|---|---|
-| `missing files required by enabled features` | Add the file, or turn off the features that use it |
-| `missing required column` | Add the column with that exact name, even if every value is blank |
-| `CSV fields do not match the header` | A row has the wrong number of commas. Put quotes around text that contains commas, and write numbers without them |
-| `should hold numbers but has` | Remove commas or text. If it's a withheld code, add it to `redacted_codes` in `my_settings.R` |
-| `must contain percentages from 0 to 100` | Use a value like `92.4`, `>95`, or blank. Look for values over 100, `>=95`, or `N/A` |
-| `county_fips value(s) not in` | Use the boundary's exact code. Check whether Excel removed leading zeros |
-| `county name(s) not in` | Use the boundary's name, without "County", or fill in `county_fips` |
-| `have no county_fips to match` | Add `county_fips` to the boundary file, or use `county_name` in the CSV |
-| `neither county_fips nor county_name` | Fill in one of them |
-| `appear more than once`, `records must be unique` | Remove the repeated row. For cases, check for an all-ages row |
-| `isn't in the settings' case_age_groups` | Add the group to `case_age_groups` in `my_settings.R`, or fix its spelling. Check for a long dash |
-| `have no latitude/longitude`, `only one of latitude and longitude` | Fill in both coordinates |
-| `coordinates outside -90..90` | Check for swapped latitude and longitude |
-| `must match a school_id` | Fix the `school_id` in `grades.csv`, or add the school to `schools.csv` |
-| `grade must use K or 0` | Use `K` or `0`, then `1` to `12`. Remove all-grades rows |
-| `district_id(s) not in` | Use the exact boundary ID. Check `district_type` on the `geography` line of `my_settings.R` |
-| `reporting_status must be` | Use `reported`, `not_reported`, or blank, in lowercase |
-| `isn't in the data folder`, `Couldn't download the Census` | Add the boundary file, or set your state on the `geography` line of `my_settings.R` and check your internet |
-| `must use Polygon or MultiPolygon`, `must contain valid polygons` | Fix the shapes, for example with `sf::st_make_valid()`, and save again |
-
-The dashboard still starts with these two warnings:
-
-| The warning says | What to do |
-|---|---|
-| `have a district_id not in` | Those schools have no linked district. Fix any mistyped IDs |
-| `isn't saved as UTF-8` | Check the file's accented names, and save it as "CSV UTF-8" |

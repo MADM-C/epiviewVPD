@@ -24,6 +24,8 @@ may take several minutes. If prompted to install packages from source, enter
 
 To update epiviewVPD, rerun the `install_github()` command.
 
+For installation errors, see [Troubleshooting](6-troubleshooting.md#installation).
+
 ## Open the interactive dashboard
 
 In the R Console, run:
@@ -50,18 +52,3 @@ Adding more guide.
 - [Maps and charts without the dashboard](4-visualizations.md): Build and save
   standalone visualizations
 - [Adding more](5-adding-more.md): Configure optional dashboard features.
-
-## Installation troubleshooting
-
-| Error message | Explanation |
-|---|---|
-| `cannot remove prior installation of package`, or `Permission denied` | A package being updated is in use. Close all R and RStudio windows, reopen RStudio, and run the two installation lines before running any other code. |
-| `this R is version ..., package 'epiviewVPD' requires R >= 4.5.0` | Install R version 4.5 or newer. |
-| `dependencies ... are not available for package 'epiviewVPD'` | A required package did not install. Scroll up to the first error message and check whether it appears in this table. If your R version is older than 4.5, install R version 4.5 or newer. You can check your version with `R.version.string`. |
-| `there is no package called 'remotes'` | Run `install.packages("remotes")` first. |
-
-For other issues, open a [GitHub
-Issue](https://github.com/MADM-C/epiviewVPD/issues) with the code, full error
-message, and output of `R.version.string` and `packageVersion("epiviewVPD")`.
-Please don't attach real data. You can also email our team at:
-[madmc@umn.edu](mailto:madmc@umn.edu).

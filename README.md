@@ -27,6 +27,8 @@ linked below:
 - **[Additional Features](guides/5-adding-more.md):** extend the dashboard and
   visualizations with child cares, grade-level coverage, school districts and
   other available data layers.
+- **[Troubleshooting](guides/6-troubleshooting.md):** resolve installation and
+  data errors, interpret warnings, and get help.
 
 ![The Dashboard tab with the artificial
 data](man/figures/dashboard-coverage.jpg)
@@ -62,9 +64,10 @@ more](guides/5-adding-more.md).
 
 epiviewVPD needs **R version 4.5 or newer** and may not install on older
 versions of R. RStudio is recommended because it includes Pandoc, which is
-required to download reports from the dashboard. The [Getting
-started](guides/1-get-started.md) guide includes additional information on
-these steps and fixes for common install errors.
+required to download reports from the dashboard. See [Getting
+started](guides/1-get-started.md) for installation steps and
+[Troubleshooting](guides/6-troubleshooting.md#installation) for fixes to common
+install errors.
 
 **1. Install epiviewVPD.** In the R Console, run:
 
@@ -191,10 +194,14 @@ epiviewVPD/
     ├── 2-data-format.md          Data files and column requirements
     ├── 3-own-data.md             Running the dashboard with your data
     ├── 4-visualizations.md       Maps and charts without the dashboard
-    └── 5-adding-more.md          Optional dashboard features
+    ├── 5-adding-more.md          Optional dashboard features
+    └── 6-troubleshooting.md      Common errors, warnings, and getting help
 ```
 
 ## Questions or problems?
+
+See the [Troubleshooting guide](guides/6-troubleshooting.md) for common errors
+and warnings.
 
 - **Found a bug or something unclear?** Open an issue on [GitHub
   Issues](https://github.com/MADM-C/epiviewVPD/issues). Include the code you
