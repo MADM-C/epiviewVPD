@@ -21,14 +21,14 @@ example_data_dir("full")   # every file
 | File | One row per | Description | Purpose |
 |---|---|---|---|
 | `counties.csv` | County | County-level vaccination coverage map | Provides county geographic information and county vaccination coverage |
-| `schools.csv` | School | School-level vaccination coverage map and tables | Provides the school’s location, vaccination coverage, and (optional) additional school |
+| `schools.csv` | School | School-level vaccination coverage map and tables | Provides each school’s location, enrollment, vaccination coverage, and optional school details |
 | `cases.csv` | County, year, and age group | Surveillance map, table, and charts with past cases | Provides the county location and total number of historic measles cases |
-| `facilities.csv` | Child care program | [Child care](5-adding-more.md#child-cares) vaccination coverage map and tables |  |
-| `grades.csv` | School and grade | [Grade-level vaccination coverage](5-adding-more.md#grade-level-coverage) tables and figures |  |
-| `districts.csv` | School district | [School districts](5-adding-more.md#school-districts) vaccination coverage map and tables |  |
-| `healthcare_centers.csv` | Healthcare location | [Proximity map tab](5-adding-more.md#proximity-search) to identify nearby healthcare clinics |  |
-| `county_boundaries.geojson` | County | Optional county boundaries; downloaded from the census if omitted |  |
-| `district_boundaries.geojson` | School district | Optional school district boundaries; downloaded from the census if omitted |  |
+| `facilities.csv` | Child care program | [Child care](5-adding-more.md#child-cares) vaccination coverage map and tables | Provides each child care program’s location, enrollment, and vaccination coverage |
+| `grades.csv` | School and grade | [Grade-level vaccination coverage](5-adding-more.md#grade-level-coverage) tables and figures | Provides enrollment and vaccination coverage by grade within each school |
+| `districts.csv` | School district | [School districts](5-adding-more.md#school-districts) vaccination coverage map and tables | Provides district-level enrollment and vaccination coverage, linked to schools and district boundaries by `district_id` |
+| `healthcare_centers.csv` | Healthcare location | [Proximity map tab](5-adding-more.md#proximity-search) to identify nearby healthcare clinics | Provides names and locations of healthcare facilities displayed on the proximity map |
+| `county_boundaries.geojson` | County | Optional county boundaries; downloaded from the census if omitted | Defines county shapes used to draw maps and match data records to counties |
+| `district_boundaries.geojson` | School district | Optional school district boundaries; downloaded from the census if omitted | Defines school district shapes used to draw maps and match district data by `district_id` |
 
 If an enabled feature requires a missing file, the dashboard stops and
 identifies the file.
