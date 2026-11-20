@@ -57,7 +57,7 @@ One row per school.
 
 | Variable | Requirement | Description |
 |---|---|---|
-| `school_id` | Required | Unique ID used to link to `grades.csv` |
+| `school_id` | Required | Unique ID for each school. Used by the interactive dashboard to identify the selected school, and to link to `grades.csv` when it is included |
 | `school_name` | Required | School name to display |
 | `latitude`, `longitude` | Required | Coordinates in decimal degrees. Required to place the school on the map |
 | `enroll` | Required | Number of students enrolled |
