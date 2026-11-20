@@ -1,8 +1,8 @@
 # Format Data
 
-This guide describes the files and variables used by epiviewVPD. The core
-dashboard requires `counties.csv`, `schools.csv`, and `cases.csv`; additional
-files support optional features described in the [Additional
+This guide describes the data files and variables used by epiviewVPD. The core
+dashboard requires the following data files: `counties.csv`, `schools.csv`, and `cases.csv`; 
+additional files support optional features described in the [Additional
 Features](adding-more.md) guide.
 
 The instructions use the `app_data` folder and `my_settings.R` file described
