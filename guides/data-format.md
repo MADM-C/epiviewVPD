@@ -6,9 +6,11 @@ additional files support optional features described in the [Additional
 Features](adding-more.md) guide.
 
 The instructions use the `app_data` folder and `my_settings.R` file described
-in [Use your own data](../README.md#use-your-own-data) in the README. For
-further guidance, the included artificial data provides examples of the
-required data formats. To view these, run the following code in the R Console:
+in the [Use your own data](../README.md#use-your-own-data) section of the README. 
+
+For a direct example of the correct format for the data, users can review the 
+artificial data included in the epiviewVPD package. To view these, run the 
+following code in the R Console:
 
 ```r
 library(epiviewVPD)
