@@ -102,30 +102,16 @@ Additional Features guide.
 
 ## Use your own data
 
-Running the dashboard with your own data involves two main tasks. The steps
-below cover the core dashboard, and each task is described in more detail in
-its own guide:
+Running the dashboard with your own data requires you to follow the data formatting guidelines required by the 
+package and for you to edit/update the settings file. The two guides below include
+additional information and guidance on how to do both of those steps, while this README provides the broader 
+setup steps. 
 
 1. **[Format Data](guides/data-format.md):** save your data as CSV files with
    the file names, variables, and values that epiviewVPD requires.
 2. **[Configure Settings](guides/settings.md):** copy the settings template
    into the project directory, set your state, and update the dashboard text and
    features to match your data.
-
-Both the data files and the settings file will be saved in an RStudio project with the following
-setup:
-
-```text
-my-dashboard/              Project directory
-├── my-dashboard.Rproj     RStudio project file
-├── my_settings.R          Settings file
-└── app_data/              Data files
-    ├── counties.csv
-    ├── schools.csv
-    └── cases.csv
-```
-
-The steps below describe how to set up this project and run the core dashboard.
 
 ### Create an RStudio project
 
@@ -183,6 +169,17 @@ About tab. These settings are optional. Settings marked `CHANGE` are the ones
 most states will want to update. The [Configure Settings](guides/settings.md)
 guide describes the available settings and how to edit the file.
 
+At this point, the project directory should have the following file organization:
+
+```text
+my-dashboard/              Project directory
+├── my-dashboard.Rproj     RStudio project file
+├── my_settings.R          Settings file
+└── app_data/              Data files
+    ├── counties.csv
+    ├── schools.csv
+    └── cases.csv
+```
 ### Run the dashboard
 
 In the R Console, run:
