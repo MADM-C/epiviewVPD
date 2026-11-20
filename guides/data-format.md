@@ -114,7 +114,7 @@ One row per child care program.
 
 | Variable | Requirement | Description |
 |---|---|---|
-| `facility_id` | Required | A unique ID, such as a license number |
+| `facility_id` | Required | A unique ID, such as a child care license number |
 | `facility_name` | Required | The facility name to display |
 | `latitude`, `longitude` | Required | Decimal degrees. Leave both blank for a facility with no known location |
 | `enroll` | Required | Number of children enrolled |
