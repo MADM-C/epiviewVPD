@@ -67,9 +67,9 @@ is not replaced.
 
 The settings file is an R script that contains one list of settings. Some
 settings are lists that group related settings, such as `geography =
-list(state = NULL, district_type = "unified")`. Comments in the file describe
-each setting. Settings marked `CHANGE` are the ones most states will want to
-update; all other settings can be left as they are.
+list(state = NULL, district_type = "unified")`. In-line code comments within the
+file describe each setting, with settings marked `CHANGE` being the ones most users
+will want to update. All other settings can be left as they are.
 
 When the dashboard starts, the settings file is combined with the template's
 default settings:
