@@ -94,16 +94,16 @@ test_that("left-out optional columns become blank columns", {
 })
 
 test_that("the data format guide lists every column the loader knows", {
-  guide <- testthat::test_path("..", "..", "vignettes", "data-format.Rmd")
+  guide <- testthat::test_path("..", "..", "guides", "data-format.md")
   skip_if_not(file.exists(guide))
   text <- paste(readLines(guide), collapse = "\n")
   for (layer in names(DATA_FILES)) {
     spec <- DATA_FILES[[layer]]
     # the section for this file runs from its heading to the next one
-    start <- regexpr(paste0("## `", spec$file, "`"), text, fixed = TRUE)
+    start <- regexpr(paste0("### `", spec$file, "`"), text, fixed = TRUE)
     expect_gt(start, 0, label = paste("section for", spec$file))
-    rest <- substring(text, start + 3)
-    section <- sub("\n## .*", "", rest)
+    rest <- substring(text, start + 4)
+    section <- sub("\n#{2,3} .*", "", rest)
     for (col in c(spec$required, spec$optional)) {
       expect_match(section, paste0("`", col, "`"), fixed = TRUE, label = paste(spec$file, col))
     }

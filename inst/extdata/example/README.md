@@ -1,15 +1,14 @@
-# Synthetic example data
+# Artificial data
 
 Every observation in this folder is fictional. School and child care names,
 IDs, enrollment, vaccination coverage, case counts, healthcare locations,
 counties, districts, and boundaries are examples for learning and testing.
 They do not describe real institutions or populations.
 
-The custom boundaries and point coordinates are located outside Minnesota.
-They represent an invented geography rather than a real U.S. state's
-boundaries or a particular Census vintage. A map's reference tiles may show
-real background geography beneath the fictional overlays. Set
-`map = list(basemap = NULL)` in your settings for a tile-free map.
+The custom boundaries and point coordinates represent an invented geography
+rather than a real U.S. state's boundaries or a particular Census vintage. A
+map's reference tiles may show real background geography beneath the fictional
+overlays. Set `map = list(basemap = NULL)` in your settings for a tile-free map.
 
 The folder supplies all seven CSV layers and both GeoJSON boundary layers.
 Custom district IDs such as `"0001"` are text and match the supplied district
@@ -40,7 +39,8 @@ After installing the package:
 
 ```r
 library(epiviewVPD)
-run_dashboard(data_dir = example_data_dir("full"))
+writeLines("list(features = all_features())", "all_features_settings.R")
+run_dashboard(data_dir = example_data_dir("full"), config = "all_features_settings.R")
 ```
 
 To work on your own copy:
@@ -50,8 +50,7 @@ dir.create("app_data", recursive = TRUE, showWarnings = FALSE)
 file.copy(list.files(example_data_dir("full"), full.names = TRUE), "app_data")
 ```
 
-See the [data-format guide](https://github.com/MADM-C/epiviewVPD/blob/main/vignettes/data-format.Rmd) for every
-column's type, units, identifiers, missing-data rules, feature dependencies,
-and a minimal dataset preparation example. The [project README](https://github.com/MADM-C/epiviewVPD#readme)
+See the [Format Data guide](https://github.com/MADM-C/epiviewVPD/blob/main/guides/data-format.md) for every
+variable's type, identifiers, and missing-data rules. The [project README](https://github.com/MADM-C/epiviewVPD#readme)
 explains installation and settings. Replace fictional observations and their
 boundaries together when adapting the dashboard to a real reporting source.

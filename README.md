@@ -1,109 +1,145 @@
 # epiviewVPD <img src="man/figures/logo.png" align="right" height="139" alt="epiviewVPD logo" />
 
-MADM-C's epiviewVPD package provides a framework for users to create their own 
-version of the Midwest EpiView: MMR Coverage and Measles Dashboard with their 
-own MMR and measles data.
+epiviewVPD is an R package for mapping surveillance data and school vaccination
+coverage data for vaccine preventable diseases (VPDs), with an option to
+implement features in an interactive dashboard. It was developed by the
+[Midwest Analytics and Disease Modeling Center
+(MADMC)](https://www.sph.umn.edu/research/centers/midwest-analytics-and-disease-modeling/)
+at the University of Minnesota School of Public Health. The package is based on
+[Midwest EpiView: MMR Coverage and Measles](http://z.umn.edu/mmr-measles) and
+Midwest EpiView: Chickenpox, which are dashboards displaying Minnesota
+vaccination coverage and surveillance data that were designed in collaboration
+with the Minnesota Department of Health.
 
-epiviewVPD was developed by the [Midwest Analytics and Disease Modeling Center (MADMC)](https://www.sph.umn.edu/research/centers/midwest-analytics-and-disease-modeling/) 
-at the University of Minnesota School of Public Health. It is built in **R** 
-using the **Shiny** framework and integrates vaccination, geographic, and 
-historical case data into a set of interactive maps and tables to support 
-exploratory public health analysis and outreach. It also includes functions
-to make specific visualizations separate from the RShiny/dashboard framework.
+This README describes how to install the package, run the interactive dashboard
+with the artificial data, and run it with your own data. For additional
+details, review the separate guides linked below:
 
-This readme covers the **basic dashboard**, which needs only three data files.
-It has county and school coverage maps, a historical case map, and summary tables
-and charts that show the same data in a different format. To add an additional 
-facility type (such as child cares), grade-level data, school districts, or the
-proximity search map, see [Adding more](vignettes/adding-more.md).
+- **[Format Data](guides/data-format.md):** prepare and format your data files
+  for use in epiviewVPD.
+- **[Configure Settings](guides/settings.md):** edit the settings file to set
+  your state, enable optional features, and change the dashboard text and
+  appearance.
+- **[Additional Features](guides/adding-more.md):** extend the dashboard with
+  child care programs, grade-level coverage, school districts, and other available data
+  layers.
+- **[Visualizations Without the Interactive
+  Dashboard](guides/visualizations.md):** build each map, chart, and table and
+  save as standalone files, separate from the dashboard.
+- **[Troubleshooting](guides/troubleshooting.md):** resolve installation and
+  data errors, interpret warnings, and get help.
 
-**On this page:** [Requirements](#requirements) |
-[Data format](#data-format) |
-[Run the dashboard](#run-the-dashboard) |
-[Run individual visualizations](#run-individual-visualizations)
+![The Dashboard tab with the artificial
+data](man/figures/dashboard-coverage.jpg)
 
-## Requirements
+## What's in the interactive dashboard
 
-- **[R 4.6.0 or newer](https://cran.r-project.org/)**
-- **[RStudio](https://posit.co/download/rstudio-desktop/)** is recommended.
-  Downloading reports from the dashboard needs Pandoc, which RStudio includes.
-- **Internet access** to install the package, draw the background map, and
-  download county boundaries the first time.
+epiviewVPD starts with a **core dashboard** that has three tabs: About,
+Dashboard, and Summary Figures. Users have the option to add two more tabs:
+Proximity Map and Resources. Features of each tab are outlined below:
 
-Install the package by running this in the R console. It also installs the
-other R packages epiviewVPD needs, so the first install can take several
-minutes.
+| Dashboard Tab | What it displays |
+|---|---|
+| **About** | An explanation of what the dashboard shows, definitions, and notes about the data. Users have the option to write specific text for this page in the settings file. |
+| **Dashboard** | A state-level map of vaccination coverage and historical cases by county, with filters for year. Users can select a county to zoom in and view the schools within that county. |
+| **Summary Figures** | A table of school vaccination coverage for a selected county with a figure and table displaying historical cases by year and age group. Users can download vaccination and case data summaries as standalone reports. |
+| **Proximity Map (Optional)** | A geospatial search tool that can be used to look up a school or address to identify nearby facilities with lower vaccination coverage. Results are displayed on a map and in a table, and can be downloaded as a PDF, CSV, or Excel file. |
+| **Resources (Optional)** | A tab with resources for using the dashboard including FAQs and links to public health resources. |
+
+It is recommended that users start by getting the core dashboard working before
+adding in the other tabs or additional data. See the [Additional
+Features](guides/adding-more.md) guide.
+
+## Installation
+
+### Requirements
+
+- R version 4.5 or newer. epiviewVPD may not install on older versions of R.
+- An internet connection is required to install the package, draw the
+  background maps, and download your state's county boundaries the first time
+  the dashboard runs.
+- RStudio is recommended because it includes Pandoc, which is required to
+  download reports from the dashboard.
+
+### Install epiviewVPD
+
+In the R Console, run:
 
 ```r
 install.packages("remotes")
 remotes::install_github("MADM-C/epiviewVPD", upgrade = "never")
 ```
 
-## Data format
+The first line installs remotes, a tool for installing R packages from GitHub.
+The second installs epiviewVPD and all additional R packages needed for
+epiviewVPD to run. The first install can take several minutes if none of the
+required R packages have been previously installed. If prompted to install
+packages from source, enter `no`.
 
-Put these three CSV files in one folder. File names and column names must
-match exactly, including capitalization. The
-[made-up example data](inst/extdata/example-basic/) shows the format.
+To update epiviewVPD, rerun the `install_github()` command. For installation
+errors, see [Installation](guides/troubleshooting.md#installation) in the
+Troubleshooting guide.
 
-| File | One row per | Required columns | Optional columns |
-|---|---|---|---|
-| `counties.csv` | County | `county_fips` or `county_name`, `enroll`, `full_vax_pct` | `full_vax` |
-| `schools.csv` | School | `school_id`, `school_name`, `latitude`, `longitude`, `enroll`, `full_vax_pct` | `county_fips`, `county_name`, `school_type` |
-| `cases.csv` | County, year, and age group | `county_fips` or `county_name`, `year`, `n_cases` | `age_group` |
+## Try the artificial data
 
-County boundaries download automatically from the Census when you set your
-state ([step 3](#use-your-own-data)).
-
-| Column | What to put in it |
-|---|---|
-| `county_fips` | 5-character county code as text, with leading zeros (`"01001"`) |
-| `county_name` | County name as the Census writes it, without the word "County" |
-| `school_id` | A unique ID for each school |
-| `school_name` | The name to display |
-| `latitude`, `longitude` | Decimal degrees (`44.95`, `-93.09`). A school's county is found from these if you leave out its county columns |
-| `enroll` | Number of students enrolled |
-| `full_vax_pct` | Percent fully vaccinated: `92.4` (not `0.924`), or a range such as `>95` or `<5` |
-| `full_vax` | Number fully vaccinated. Adds the overall rate above the county map |
-| `school_type` | A label such as `Public` or `Private` |
-| `year`, `n_cases` | Calendar year; number of cases |
-| `age_group` | A label such as `0-4` or `5-17`. Don't include an all-ages total alongside the age groups |
-
-Rules for values:
-
-- Save CSV files as comma-separated with a header row.
-- **Leave unknown values blank.** `0` means a real zero. If your data marks
-  withheld values with a code such as `*`, add it to `redacted_codes` in your
-  settings file ([step 2](#use-your-own-data)).
-- **Keep IDs as text.** Excel removes leading zeros from codes like `01001`, so
-  check them before saving.
-- Write numbers without commas: `1250`, not `1,250`.
-
-The [data format guide](vignettes/data-format.md) contains an extended explanation
-and guide.
-
-## Run the dashboard
-
-### Try the example data
-
-Data contained in the example data is all randomly generated, including the state
-and county boundaries.
+Artificial data is included in the epiviewVPD package and can be used to test
+various package functions. All of the artificial data is randomly generated,
+including the state and county boundaries. In the R Console, run:
 
 ```r
 library(epiviewVPD)
 run_dashboard(data_dir = example_data_dir())
 ```
 
-The dashboard opens in a new window.
+The dashboard opens in a new window. To stop the dashboard, press **Esc** in the
+R Console or click **Stop**.
 
-### Use your own data
+The core dashboard includes county and school vaccination coverage, historical
+case data, summary figures, and an About tab. To view the optional features
+with the artificial data (such as the Proximity Map), see
+[View the full dashboard](guides/adding-more.md#view-the-full-dashboard) in the
+Additional Features guide.
 
-**1. Make a data folder.** Create a folder named `app_data` and save
-`counties.csv`, `schools.csv`, and `cases.csv` in it ([format above](#data-format)).
-Put it in R's working directory; run `getwd()` to see which folder that is.
+## Use your own data
 
-**2. Copy the settings file.** The settings file holds your state, the
-dashboard title, and the text on each tab. This copies the template and opens
-it:
+Running the dashboard with your own data requires you to follow the data formatting guidelines required by the 
+package and for you to edit/update the settings file. The two guides below include
+additional information and guidance on how to do both of those steps, while this README provides the broader 
+setup steps. 
+
+1. **[Format Data](guides/data-format.md):** save your data as CSV files with
+   the file names, variables, and values that epiviewVPD requires.
+2. **[Configure Settings](guides/settings.md):** copy the settings template
+   into the project directory, set your state, and update the dashboard text and
+   features to match your data.
+
+### Create an RStudio project
+
+Create an RStudio project for the dashboard (**File > New Project**). The
+project directory will serve as the working directory for the data files and
+the settings file.
+
+### Add data files
+
+Create a folder named `app_data` in the project directory and add the following
+CSV files:
+
+| File | One row per | Required variables |
+|---|---|---|
+| `counties.csv` | County | `county_fips` or `county_name`, `enroll`, `full_vax_pct` |
+| `schools.csv` | School | `school_id`, `school_name`, `latitude`, `longitude`, `enroll`, `full_vax_pct` |
+| `cases.csv` | County, year, and age group | `county_fips` or `county_name`, `year`, `n_cases` |
+
+File and variable names must match exactly, including capitalization. See the
+[Format Data](guides/data-format.md) guide for variable definitions and
+formatting requirements.
+
+If working in Excel, save each sheet with **File > Save As > CSV UTF-8**. Excel drops
+leading zeros from codes like `01001`, so check `county_fips` before saving.
+
+### Configure settings
+
+Run the R code below in the R Console to copy the settings template to the project directory and open it:
 
 ```r
 library(epiviewVPD)
@@ -111,109 +147,132 @@ file.copy(system.file("config", "template.R", package = "epiviewVPD"), "my_setti
 file.edit("my_settings.R")
 ```
 
-**3. Set your state.** In `my_settings.R`, find the `geography` line and put in
-your state's two-letter code, then save the file:
+In `my_settings.R`, locate the `geography` setting:
 
 ```r
+# In my_settings.R:
+geography = list(state = NULL, district_type = "unified"),
+```
+
+Replace `NULL` with your state's two-letter code in quotes, then save the file:
+
+```r
+# In my_settings.R:
 geography = list(state = "WI", district_type = "unified"),
 ```
 
-County boundaries for that state download the first time you run the
-dashboard. Other lines marked `CHANGE`, such as the title, are optional.
+The dashboard downloads county boundaries from the U.S. Census the first time it
+runs, so an internet connection is required.
 
-**4. Start the dashboard.**
+The settings file also controls the dashboard title, footer, and text on the
+About tab. These settings are optional. Settings marked `CHANGE` are the ones
+most states will want to update. The [Configure Settings](guides/settings.md)
+guide describes the available settings and how to edit the file.
+
+At this point, the project directory should have the following file organization:
+
+```text
+my-dashboard/              Project directory
+├── my-dashboard.Rproj     RStudio project file
+├── my_settings.R          Settings file
+└── app_data/              Data files
+    ├── counties.csv
+    ├── schools.csv
+    └── cases.csv
+```
+### Run the dashboard
+
+In the R Console, run:
 
 ```r
 run_dashboard(data_dir = "app_data", config = "my_settings.R")
 ```
 
-If something in your data needs fixing, the dashboard stops and names the
-file, the column, and what to change. The
-[data format guide](vignettes/data-format.md) has a troubleshooting table.
+If data validation fails, see [Data
+errors](guides/troubleshooting.md#data-errors) in the Troubleshooting guide for
+common messages and what to do.
 
-## Run individual visualizations
+To run the dashboard in a later session, open the project and run:
 
-You can build each map, chart, and table without opening the dashboard. Start
-by loading the data. This uses the example; your own data is covered
-[below](#use-your-own-data-1).
+```r
+library(epiviewVPD)
+run_dashboard(data_dir = "app_data", config = "my_settings.R")
+```
+
+To update the dashboard data, replace the files in `app_data` and rerun the
+same code.
+
+## Visualizations without the interactive dashboard
+
+For users who are not interested in an interactive dashboard, each map, chart,
+and table can be built in R and saved as a standalone file outside of the
+dashboard.
 
 ```r
 library(epiviewVPD)
 data <- load_app_data(example_data_dir())
-```
 
-Then build what you need. Each one displays when you run it:
-
-```r
-# County coverage map
 build_coverage_map(data$counties)
-
-# Map of historical cases
-build_cases_map(data$cases, data$counties)
-
-# Map of the schools in one county
-build_facility_map(
-  schools = data$schools,
-  counties = data$counties,
-  selected_county = data$counties$county_name[1],
-  point_type = "Schools"
-)
-
-# Cases by year, statewide
 plot_epicurve(data$cases, counties = data$counties)
-
-# Case summary table, statewide
-render_cases_gt(data$cases, counties = data$counties)
-
-# School coverage table
-build_coverage_table(schools = data$schools, table_type = "school")
 ```
 
-Run `?build_cases_map` (or any function name) to see its options.
+See [Visualizations Without the Interactive
+Dashboard](guides/visualizations.md) for the full list of visualization
+functions and for instructions on how to use your own data.
 
-### Save a visualization
+## What's in this repository
 
-```r
-dir.create("outputs")
-
-cases_chart <- plot_epicurve(data$cases, counties = data$counties)
-save_figure(cases_chart, "outputs/cases.png")
-
-coverage_map <- build_coverage_map(data$counties)
-save_map(coverage_map, "outputs/coverage-map.html")
-
-coverage_table <- build_coverage_table(schools = data$schools, table_type = "school")
-save_table(coverage_table, "outputs/school-coverage.html")
+```
+epiviewVPD/
+├── DESCRIPTION              Package metadata and dependencies
+├── NAMESPACE                Functions exported by the package, generated by roxygen2
+├── LICENSE, LICENSE.md       MIT license
+├── README.md                 Package overview and instructions
+├── app.R                     Runs the dashboard from the repository for development
+├── epiviewVPD.Rproj          RStudio project file for package development
+├── R/                        Package source code
+│   ├── run_dashboard.R           Reads settings and data and starts the dashboard
+│   ├── load_app_data.R           Reads and checks the data files
+│   ├── input_validation.R        Validates values in each data file
+│   ├── dashboard_settings.R      Default settings and feature switches
+│   ├── app_ui.R                  Dashboard layout, including tabs, sidebars, and maps
+│   ├── app_server.R              Connects dashboard inputs to outputs
+│   ├── standalone_maps.R         Functions for building maps
+│   ├── standalone_tables.R       Functions for building tables
+│   ├── table_measles_functions.R Functions for case tables and charts
+│   ├── save_visualizations.R     Functions for saving maps, figures, and tables
+│   └── ...                       Additional files for dashboard sections and features
+├── inst/
+│   ├── config/
+│   │   ├── template.R            Settings template for use with your data
+│   │   └── measles_mn.R          Minnesota settings with all features enabled
+│   ├── extdata/
+│   │   ├── example-basic/        Artificial data for the core dashboard
+│   │   └── example/              Artificial data for all features
+│   ├── reports/                  Templates for downloadable reports
+│   └── app/www/                  Logo and case study PDFs shown in the dashboard
+├── man/                      Generated help pages; man/figures contains screenshots
+├── tests/testthat/           Automated tests
+└── guides/                   Guides linked at the top of this README
+    ├── data-format.md            Data files and variable requirements
+    ├── settings.md               The settings file and each setting
+    ├── adding-more.md            Optional dashboard features
+    ├── visualizations.md         Maps and charts without the dashboard
+    └── troubleshooting.md        Common errors, warnings, and getting help
 ```
 
-### Use your own data
+## Questions or problems?
 
-Use the `app_data` folder and `my_settings.R` file from
-[Run the dashboard](#use-your-own-data). Copy this as it is. It reads your
-settings and passes on the ones that change how your files are read: your
-state, withheld-value codes, and age groups.
+See the [Troubleshooting](guides/troubleshooting.md) guide for common errors
+and warnings.
 
-```r
-library(epiviewVPD)
-settings <- read_dashboard_settings("my_settings.R")
-
-data <- load_app_data(
-  "app_data",
-  geography = settings$geography,
-  case_data = settings$case_data,
-  case_age_groups = settings$case_age_groups,
-  suppressed_offset = settings$suppression$blurred_offset,
-  redacted_codes = settings$suppression$redacted_codes
-)
-```
-
-Then build what you need as above. Add `settings = settings` to the map and
-chart functions so they use your colors and labels:
-
-```r
-build_coverage_map(data$counties, settings = settings)
-plot_epicurve(data$cases, counties = data$counties, settings = settings)
-```
+- **Found a bug or something unclear?** Open an issue on [GitHub
+  Issues](https://github.com/MADM-C/epiviewVPD/issues). Include the code you
+  ran, the full error message, and the output of `R.version.string` and
+  `packageVersion("epiviewVPD")`. Please don't attach real data; instead, use the
+  included artificial data to show the problem.
+- **Email:** Alternatively, you can email our team at
+  [madmc@umn.edu](mailto:madmc@umn.edu)
 
 ## License
 
