@@ -89,7 +89,7 @@ file](#check-the-settings-file).
 
 ## State and boundaries
 
-`geography`, at the top of the settings file, is the only setting required to
+`geography`, at the top of the settings file, is the only setting **required** to
 run the dashboard with your own data. Replace `NULL` with your state's
 two-letter code in quotes:
 
@@ -104,7 +104,7 @@ sessions. `geography` contains two additional settings:
 - `district_type`: the type of school district boundaries, `"unified"`
   (default), `"elementary"`, or `"secondary"`.
 - `year`: the Census year of the boundaries, such as `year = 2023`. If `year`
-  is omitted, the default year of the tigris package is used.
+  is omitted, the default year of the tigris R package is used.
 
 If the data folder includes its own `county_boundaries.geojson` or
 `district_boundaries.geojson`, the dashboard draws the boundaries in that file
