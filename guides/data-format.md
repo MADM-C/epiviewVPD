@@ -24,7 +24,7 @@ example_data_dir("full")   # every file
 |---|---|---|---|
 | `counties.csv` | County | County-level vaccination coverage map | Provides county geographic information and county vaccination coverage |
 | `schools.csv` | School | School-level vaccination coverage map and tables | Provides each school’s location, enrollment, vaccination coverage, and optional school details |
-| `cases.csv` | County, year, and age group | Surveillance map, table, and charts with past cases | Provides the county location and total number of historical cases |
+| `cases.csv` | County and year | Surveillance map, table, and charts with past cases | Provides the county location and total number of historical cases |
 | `facilities.csv` | Child care program | [Child care](adding-more.md#child-cares) vaccination coverage map and tables | Provides each child care program’s location, enrollment, and vaccination coverage |
 | `grades.csv` | School and grade | [Grade-level vaccination coverage](adding-more.md#grade-level-coverage) tables and figures | Provides enrollment and vaccination coverage by grade within each school |
 | `districts.csv` | School district | [School districts](adding-more.md#school-districts) vaccination coverage map and tables | Provides district-level enrollment and vaccination coverage, linked to schools and district boundaries by `district_id` |
