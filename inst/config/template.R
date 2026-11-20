@@ -20,10 +20,29 @@
 
 
 list(
-  # The parts of the dashboard to show. The basic dashboard needs only
+  # CHANGE: your state's two-letter code. The dashboard downloads the
+  # county and school district boundaries for it from the U.S. Census
+  # Bureau and keeps a copy. If the data folder has its own
+  # county_boundaries.geojson and district_boundaries.geojson, those are used.
+  #   district_type: "unified" (default), "elementary" or "secondary"
+  #   year: Census year of the boundaries; leave it out for the tigris
+  #     package's default year
+  geography = list(state = NULL, district_type = "unified"),
+  # CHANGE: how withheld values appear in your data.
+  #   redacted_codes: values that mean "withheld", besides a blank cell,
+  #     e.g. c("*", "S", "suppressed"); they are treated as blank.
+  #   blurred_offset: a blurred value such as ">95" or "<5" counts as its
+  #     number plus (for ">") or minus (for "<") this, for the coverage
+  #     colors (see coverage_bins) and district coverage.
+  #   suppression = NULL means exact numbers: no codes, offset 0.
+  suppression = list(
+    redacted_codes = character(0),
+    blurred_offset = 1
+  ),
+  # The parts of the dashboard to show. The core dashboard needs only
   # counties.csv, schools.csv, cases.csv and county boundaries. The switches
-  # set to FALSE add more; most need more data files (see the "Adding more"
-  # guide). Optional districts are used whenever their files are supplied.
+  # set to FALSE add more; most need more data files (see the "Additional
+  # Features" guide). Optional districts are used whenever their files are supplied.
   features = list(
     coverage_map = TRUE, cases_map = TRUE, facility_map = TRUE,
     school_summary = TRUE, cases_summary = TRUE, epicurve = TRUE,
@@ -98,25 +117,6 @@ list(
     blurred = "Blurred values (e.g., '>95%') are shown as a range to protect privacy.",
     redacted_grades = "Grade-level vaccination data are redacted to protect privacy.",
     redacted_childcares = "MMR coverage is not displayed for child cares whose data were withheld to protect privacy."
-  ),
-  # CHANGE: your state's two-letter code. The dashboard downloads the
-  # county and school district boundaries for it from the U.S. Census
-  # Bureau and keeps a copy. If the data folder has its own
-  # county_boundaries.geojson and district_boundaries.geojson, those are used.
-  #   district_type: "unified" (default), "elementary" or "secondary"
-  #   year: Census year of the boundaries; leave it out for the tigris
-  #     package's default year
-  geography = list(state = NULL, district_type = "unified"),
-  # CHANGE: how withheld values appear in your data.
-  #   redacted_codes: values that mean "withheld", besides a blank cell,
-  #     e.g. c("*", "S", "suppressed"); they are treated as blank.
-  #   blurred_offset: a blurred value such as ">95" or "<5" counts as its
-  #     number plus (for ">") or minus (for "<") this, for the coverage
-  #     colors (see coverage_bins) and district coverage.
-  #   suppression = NULL means exact numbers: no codes, offset 0.
-  suppression = list(
-    redacted_codes = character(0),
-    blurred_offset = 1
   ),
   labels = list(
     coverage_outcome = "MMR Vaccine Coverage",

@@ -2,17 +2,17 @@
 
 This guide describes the files and variables used by epiviewVPD. The core
 dashboard requires `counties.csv`, `schools.csv`, and `cases.csv`; additional
-files support optional features described in the [Adding
-more](5-adding-more.md) guide.
+files support optional features described in the [Additional
+Features](adding-more.md) guide.
 
 The instructions use the `app_data` folder and `my_settings.R` file described
-in the [Dashboard guide](3-own-data.md). For further guidance, the included
-artificial data provides examples of the required data formats. To view these,
-run the following code in the R Console:
+in [Use your own data](../README.md#use-your-own-data) in the README. For
+further guidance, the included artificial data provides examples of the
+required data formats. To view these, run the following code in the R Console:
 
 ```r
 library(epiviewVPD)
-example_data_dir()         # the three core files
+example_data_dir()         # the three core files and county boundaries
 example_data_dir("full")   # every file
 ```
 
@@ -22,16 +22,16 @@ example_data_dir("full")   # every file
 |---|---|---|---|
 | `counties.csv` | County | County-level vaccination coverage map | Provides county geographic information and county vaccination coverage |
 | `schools.csv` | School | School-level vaccination coverage map and tables | Provides each school’s location, enrollment, vaccination coverage, and optional school details |
-| `cases.csv` | County, year, and age group | Surveillance map, table, and charts with past cases | Provides the county location and total number of historic measles cases |
-| `facilities.csv` | Child care program | [Child care](5-adding-more.md#child-cares) vaccination coverage map and tables | Provides each child care program’s location, enrollment, and vaccination coverage |
-| `grades.csv` | School and grade | [Grade-level vaccination coverage](5-adding-more.md#grade-level-coverage) tables and figures | Provides enrollment and vaccination coverage by grade within each school |
-| `districts.csv` | School district | [School districts](5-adding-more.md#school-districts) vaccination coverage map and tables | Provides district-level enrollment and vaccination coverage, linked to schools and district boundaries by `district_id` |
-| `healthcare_centers.csv` | Healthcare location | [Proximity map tab](5-adding-more.md#proximity-search) to identify nearby healthcare clinics | Provides names and locations of healthcare facilities displayed on the proximity map |
-| `county_boundaries.geojson` | County | Optional county boundaries; downloaded from the census if omitted | Defines county shapes used to draw maps and match data records to counties |
-| `district_boundaries.geojson` | School district | Optional school district boundaries; downloaded from the census if omitted | Defines school district shapes used to draw maps and match district data by `district_id` |
+| `cases.csv` | County, year, and age group | Surveillance map, table, and charts with past cases | Provides the county location and total number of historical cases |
+| `facilities.csv` | Child care program | [Child care](adding-more.md#child-cares) vaccination coverage map and tables | Provides each child care program’s location, enrollment, and vaccination coverage |
+| `grades.csv` | School and grade | [Grade-level vaccination coverage](adding-more.md#grade-level-coverage) tables and figures | Provides enrollment and vaccination coverage by grade within each school |
+| `districts.csv` | School district | [School districts](adding-more.md#school-districts) vaccination coverage map and tables | Provides district-level enrollment and vaccination coverage, linked to schools and district boundaries by `district_id` |
+| `healthcare_centers.csv` | Healthcare location | [Proximity map tab](adding-more.md#proximity-search) to identify nearby healthcare clinics | Provides names and locations of healthcare facilities displayed on the proximity map |
+| `county_boundaries.geojson` | County | Optional county boundaries; downloaded from the U.S. Census if omitted | Defines county shapes used to draw maps and match data records to counties |
+| `district_boundaries.geojson` | School district | Optional school district boundaries; downloaded from the U.S. Census if omitted | Defines school district shapes used to draw maps and match district data by `district_id` |
 
 For missing files, data errors, and warnings, see the
-[Troubleshooting guide](6-troubleshooting.md#data-errors).
+[Troubleshooting guide](troubleshooting.md#data-errors).
 
 ## File specifications
 
@@ -198,7 +198,8 @@ One row per location.
 Use `0` for a true zero and leave unknown or withheld values blank.
 
 If the data uses characters for withheld (or redacted) values, such as `*`,
-`S`, or `NA`, specify them in `my_settings.R` (approx. line 118). For example,
+`S`, or `NA`, specify them in the `suppression` setting of `my_settings.R` (see [Withheld
+and missing values](settings.md#withheld-and-missing-values)). For example,
 replace:
 
 ```r
@@ -280,8 +281,8 @@ district boundaries. Districts are not matched by name.
 
 **Census boundaries.** If you don’t include your own boundary files, epiviewVPD
 will download them from the U.S. Census based on the state specified in the
-geography line of `my_settings.R` ([Configure
-settings](3-own-data.md#configure-settings)). This also includes an option to
+geography line of `my_settings.R` (see [Configure
+Settings](settings.md)). This also includes an option to
 select the type of school district boundaries (`"unified"`, `"elementary"`, or
 `"secondary"`) and the specific Census year:
 

@@ -1,4 +1,4 @@
-# Visualizations without the interactive dashboard
+# Visualizations Without the Interactive Dashboard
 
 Users can build static maps, charts, and tables in R without opening the
 interactive dashboard, and save them as standalone files. This option serves as
@@ -63,7 +63,7 @@ Saving to an existing file produces an error. Add `overwrite = TRUE` to replace
 it.
 
 ```r
-dir.create("outputs")
+dir.create("outputs", showWarnings = FALSE)
 
 cases_chart <- plot_epicurve(data$cases, counties = data$counties)
 save_figure(cases_chart, "outputs/cases.png")
@@ -77,8 +77,8 @@ save_table(coverage_table, "outputs/school-coverage.html")
 
 ## Use your own data
 
-Use the `app_data` folder and `my_settings.R` file in the [Dashboard
-guide](3-own-data.md). The following code reads the settings and passes the
+Use the `app_data` folder and `my_settings.R` file described in [Use your own
+data](../README.md#use-your-own-data) in the README. The following code reads the settings and passes the
 relevant values to `load_app_data()`:
 
 ```r
@@ -103,7 +103,57 @@ build_coverage_map(data$counties, settings = settings)
 plot_epicurve(data$cases, counties = data$counties, settings = settings)
 ```
 
-For child cares, grade-level, school district, and proximity map
-visualizations, see [Build additional visualizations in
-R](5-adding-more.md#build-additional-visualizations-in-r) in the Adding more
-guide.
+## Build additional visualizations
+
+These examples use the full artificial data. To use your own data, load it as
+in [Use your own data](#use-your-own-data).
+
+```r
+library(epiviewVPD)
+data <- load_app_data(example_data_dir("full"))
+one_school <- data$schools$school_id[1]
+
+# Grade-level chart and table for one school
+grade_level_plot(data$grades, one_school)
+grade_level_table(data$grades, one_school)
+
+# Details for one school
+build_facility_overview_table(
+  paste0("school:", one_school),
+  schools = data$schools, facilities = data$facilities,
+  counties = data$counties, districts = data$districts
+)
+
+# Map with schools and child cares
+build_facility_map(
+  schools = data$schools, facilities = data$facilities,
+  counties = data$counties, districts = data$districts
+)
+
+# District coverage map
+build_coverage_map(data$districts, boundary = "district")
+
+# Child care coverage table
+build_coverage_table(facilities = data$facilities, table_type = "childcare")
+
+# Schools and child care programs below 90% coverage within 5 miles of
+# one child care program
+center <- data$facilities[data$facilities$facility_id == "247677", ]
+location <- sf::st_coordinates(center)[1, ]
+nearby <- analyze_facility_proximity(
+  data, lat = location[["Y"]], lng = location[["X"]],
+  radius_miles = 5, threshold = 90
+)
+build_proximity_map(
+  schools = data$schools, facilities = data$facilities,
+  counties = data$counties, healthcare_centers = data$healthcare_centers,
+  result = nearby
+)
+build_proximity_table(nearby$low_vaccine_facilities, searched = TRUE)
+```
+
+To save a map as PNG, or a table as PNG or PDF, you also need Chrome and:
+
+```r
+install.packages(c("webshot2", "chromote"))
+```

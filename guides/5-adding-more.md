@@ -1,12 +1,13 @@
-# Additional features
+# Additional Features
 
 The core dashboard uses `counties.csv`, `schools.csv`, and `cases.csv`.
 Additional files and settings enable child care, grade-level, school district,
 and proximity map features.
 
-This guide uses the `app_data` folder and `my_settings.R` file described in the
-[Dashboard guide](3-own-data.md). See the [Data format](2-data-format.md) guide
-for file and variable requirements.
+This guide uses the `app_data` folder and `my_settings.R` file described in [Use
+your own data](../README.md#use-your-own-data) in the README. See the [Format
+Data](data-format.md) guide for file and variable requirements and the
+[Configure Settings](settings.md) guide for editing the settings file.
 
 ## Available features
 
@@ -15,7 +16,7 @@ for file and variable requirements.
 | [Child cares](#child-cares) | Child cares locations and vaccination coverage on the map and summary table | `facilities.csv` | `childcare_summary` |
 | [Grade-level coverage](#grade-level-coverage) | Chart and table for each school with vaccination coverage by grade-level | `grades.csv` | `grade_plot`, `grade_table` |
 | [School details](#school-details) | Additional details with the school map and downloadable report for a selected school | Optional variables in `schools.csv` | `facility_overview` |
-| [School districts](#school-districts) | Additional details with the school map and downloadable report for the selected school, in addition to an additional dropdown option for the sidebar. | `districts.csv`, and  `district_id` in `schools.csv` | None |
+| [School districts](#school-districts) | School district vaccination coverage map and school coverage tables by district | `districts.csv`, and `district_id` in `schools.csv` | None |
 | [More county detail](#county-demographics) | Demographic information in county pop-ups | Optional variables in `counties.csv` | None |
 | [Proximity map](#proximity-search) tab | Identify healthcare facilities and low-coverage schools and child cares near a selected address | `healthcare_centers.csv` (optional) | `proximity_map`, `proximity_table` |
 | [Resources tab](#resources-tab) | FAQ, links, and case study downloads | None | `resources` |
@@ -40,7 +41,7 @@ run_dashboard(data_dir = "app_data", config = "my_settings.R")
 If an enabled feature requires a missing file, the dashboard stops and
 identifies the file.
 
-The default tab text describes the basic dashboard. Update the relevant
+The default tab text describes the core dashboard. Update the relevant
 settings in the `text` section of `my_settings.R`, such as `dashboard_intro`,
 `summary_intro`, and `about_body`, to reflect the features you enable.
 
@@ -61,15 +62,15 @@ To locate the full artificial data files, run `example_data_dir("full")`.
 
 Add `facilities.csv`, with one row per child care program. Programs appear on
 the map when the file is present. Enable `childcare_summary` to add the summary
-table. See `facilities.csv` in the [Data format](2-data-format.md) for variable
+table. See `facilities.csv` in the [Format Data](data-format.md) guide for variable
 requirements.
 
 ## Grade-level coverage
 
 Add `grades.csv`, with one row per grade in each school, and turn on
 `grade_plot` and `grade_table`. To see them, select a school on the Dashboard
-tab. The columns are listed under `grades.csv` in the [data format
-guide](2-data-format.md).
+tab. The variables are listed under `grades.csv` in the [Format
+Data](data-format.md) guide.
 
 ## School details
 
@@ -87,14 +88,15 @@ county. These optional columns in `schools.csv` add to it:
 ## School districts
 
 Add `districts.csv`, and add a `district_id` column to `schools.csv` to link
-each school to its district. There's no setting to turn on: a "School
-Districts" choice appears once the data is there.
+each school to its district. No setting is required. When the district data is
+present, a School Districts option appears under Boundary View on the Dashboard
+and Summary Figures tabs.
 
 District boundaries download from the Census for the state in `my_settings.R`.
 For Census boundaries, `district_id` is the 7-character Census district code.
 You can use your own `district_boundaries.geojson` instead. The matching rules
-and the columns are in the [data format
-guide](2-data-format.md#school-districts-matching).
+and the variables are in the [Format
+Data](data-format.md#school-districts-matching) guide.
 
 ## Proximity search
 
@@ -136,63 +138,5 @@ resource_links = list(
 
 ## Other settings
 
-Every setting, including logos, coverage colors and cutoffs, and the map view,
-is explained by the comments in `my_settings.R`. Lines marked `CHANGE` are the
-ones most states will want to fill in. Logo files go in the same folder as
-`my_settings.R`. For a filled-in example, open the Minnesota settings:
-
-```r
-file.edit(system.file("config", "measles_mn.R", package = "epiviewVPD"))
-```
-
-## Build additional visualizations in R
-
-These examples use artificial data. To use your own data, load it as in [Use
-your own data](4-visualizations.md#use-your-own-data).
-
-```r
-library(epiviewVPD)
-data <- load_app_data(example_data_dir("full"))
-one_school <- data$schools$school_id[1]
-
-# Grade-level chart and table for one school
-grade_level_plot(data$grades, one_school)
-grade_level_table(data$grades, one_school)
-
-# Details for one school
-build_facility_overview_table(
-  paste0("school:", one_school),
-  schools = data$schools, facilities = data$facilities,
-  counties = data$counties, districts = data$districts
-)
-
-# Map with schools and child cares
-build_facility_map(
-  schools = data$schools, facilities = data$facilities,
-  counties = data$counties, districts = data$districts
-)
-
-# District coverage map
-build_coverage_map(data$districts, boundary = "district")
-
-# Child care coverage table
-build_coverage_table(facilities = data$facilities, table_type = "childcare")
-
-# Facilities below 90% coverage within 5 miles of a point
-location <- sf::st_coordinates(data$facilities)[1, ]
-nearby <- analyze_facility_proximity(
-  data$facilities, lat = location[["Y"]], lng = location[["X"]],
-  radius_miles = 5, threshold = 90
-)
-build_proximity_map(
-  facilities = data$facilities, counties = data$counties,
-  healthcare_centers = data$healthcare_centers, result = nearby
-)
-build_proximity_table(nearby$low_vaccine_facilities, searched = TRUE)
-```
-
-To save a map as PNG, or a table as PNG or PDF, you also need Chrome and:
-
-```r
-install.packages(c("webshot2", "chromote"))
-```
+Logos, coverage colors and cutoffs, the map view, and the text on each tab are
+described in the [Configure Settings](settings.md) guide.
